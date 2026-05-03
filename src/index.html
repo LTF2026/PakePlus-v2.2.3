@@ -1,11 +1,3961 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus</title>
-    </head>
-    <body>
-        Hello World
-    </body>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="乐思美发">
+    <title>乐思美发会员管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8b5cf6',
+                        primaryDark: '#7c3aed',
+                        primaryLight: '#a78bfa',
+                        success: '#10b981',
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        dark: '#1f2937',
+                        light: '#f9fafb'
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 15px rgba(0, 0, 0, 0.05)',
+                        'medium': '0 4px 20px rgba(0, 0, 0, 0.08)',
+                        'hard': '0 8px 30px rgba(0, 0, 0, 0.12)',
+                        'glass': '0 8px 32px rgba(31, 38, 135, 0.15)'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* 基础样式 */
+        .tab-active { border-bottom: 3px solid #8b5cf6; color: #8b5cf6; font-weight: 600; }
+        .cate-active { border-left: 4px solid #8b5cf6; background: linear-gradient(90deg, #f5f3ff 0%, #ffffff 100%); color: #8b5cf6; font-weight: 600; }
+        .filter-active { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; }
+        .top-tab-active { color: white; font-weight: 600; border-bottom: 3px solid white; }
+        
+        /* 玻璃拟态样式 */
+        .glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* 渐变背景 */
+        .gradient-bg {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+        }
+        
+        /* 渐变按钮 */
+        .gradient-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+        
+        .gradient-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+        
+        .gradient-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+        }
+        
+        /* 弹窗样式 */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+        .modal.show { display: flex; animation: fadeIn 0.3s ease; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        /* 下拉菜单 */
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 8px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 50;
+            min-width: 140px;
+            overflow: hidden;
+        }
+        .dropdown-menu.show { display: block; animation: fadeIn 0.2s ease; }
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            background: white;
+            color: #333;
+            font-size: 16px;
+            transition: background 0.2s ease;
+        }
+        .dropdown-item:last-child { border-bottom: none; }
+        .dropdown-item:hover { background: #f5f3ff; }
+        
+        /* 日历样式 */
+        .calendar-day {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .calendar-day:hover { background: #f5f3ff; }
+        .calendar-day.disabled { color: #ccc; cursor: not-allowed; }
+        .calendar-day.selected { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; }
+        .calendar-day.range { background: #ede9fe; color: #8b5cf6; }
+        
+        /* 通用样式 */
+        button * { pointer-events: none; }
+        .detail-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+        .detail-item:last-child { border-bottom: none; }
+        .service-tag { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 8px; }
+        .order-item { background: white; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05); }
+        
+        /* ========================================
+           全新滑动布局系统 - 彻底解决所有页面显示不全
+           ======================================== */
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+            -webkit-overflow-scrolling: touch;
+            font-family: '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif';
+            background: #f8fafc;
+        }
+        
+        #app { 
+            position: relative; 
+            min-height: 100vh; 
+            max-width: 420px; 
+            margin: 0 auto; 
+            background: #f8fafc;
+            /* 为底部导航预留固定空间 */
+            padding-bottom: 70px;
+        }
+        
+        header { 
+            position: sticky; 
+            top: 0; 
+            z-index: 100; 
+            flex-shrink: 0;
+        }
+        
+        /* 底部导航栏 - 绝对固定在视口底部 */
+        footer { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            z-index: 99; 
+            max-width: 420px;
+            margin: 0 auto;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* 所有页面统一滚动容器 - 解决所有页面滑动问题 */
+        .page-scroll {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            /* 基础底部内边距 */
+            padding-bottom: 20px;
+        }
+        
+        /* 有底部操作栏的页面 - 额外增加内边距防止遮挡 */
+        .has-bottom-bar {
+            padding-bottom: 290px !important;
+        }
+        
+        /* ✅ 修复：左右分栏页面专用滚动容器 - 彻底解决最下面项目被遮挡问题 */
+        .split-scroll {
+            height: calc(100vh - 290px); /* 大幅增加高度，留出更多底部空间 */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 220px; /* 大幅增加底部内边距，确保最下面的服务项目完全可见 */
+        }
+        
+        /* ✅ 修复：底部操作栏层级提高，确保不会被底部导航栏遮挡 */
+        .bottom-bar {
+            z-index: 101 !important;
+        }
+        
+        /* 确认订单样式 - 按照图片模板 */
+        .order-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        .order-item-delete {
+            color: #ef4444;
+            font-size: 16px;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .order-item-delete:hover {
+            color: #dc2626;
+        }
+        .order-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .order-item-row:last-child {
+            border-bottom: none;
+        }
+        .order-item-label {
+            color: #666;
+            font-size: 16px;
+        }
+        .order-item-value {
+            font-size: 16px;
+            color: #333;
+        }
+        .order-item-edit {
+            color: #8b5cf6;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: color 0.2s ease;
+        }
+        .order-item-edit:hover {
+            color: #7c3aed;
+        }
+        
+        /* 输入框样式优化 */
+        input, select, textarea {
+            -webkit-appearance: none;
+            appearance: none;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+        
+        /* 卡片样式优化 */
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        /* 统计数字样式 */
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* 滚动条隐藏 */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <!-- 顶部导航 - 完全固定 -->
+    <header class="gradient-bg text-white py-4 px-4 shadow-hard">
+        <div class="flex justify-between items-center">
+            <button id="back-btn" class="hidden text-xl"><i class="fa fa-angle-left"></i></button>
+            <h1 id="page-title" class="text-xl font-bold">乐思美发</h1>
+            <div class="flex items-center relative">
+                <button id="add-btn" class="hidden text-xl"><i class="fa fa-plus"></i></button>
+                <button id="menu-btn" class="hidden text-white"><i class="fa fa-ellipsis-v text-xl"></i></button>
+                <div id="service-menu" class="dropdown-menu">
+                    <button class="dropdown-item" onclick="openAddCategory()">分类设置</button>
+                    <button class="dropdown-item" onclick="openAddService()">添加服务</button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- 主内容区 -->
+    <main id="main">
+        <!-- 首页 -->
+        <div id="page-home" class="page page-scroll p-4">
+            <div class="card mb-4 overflow-hidden">
+                <div class="flex justify-between items-center p-4 border-b">
+                    <span class="font-semibold">店铺营收 <span id="total-revenue" class="stat-number text-2xl">¥0.00</span></span>
+                    <div class="relative">
+                        <button id="home-date-btn" class="bg-gray-100 px-3 py-1 rounded-lg text-sm flex items-center">
+                            <i class="fa fa-calendar-o mr-1"></i>本月
+                            <i class="fa fa-angle-down ml-1"></i>
+                        </button>
+                        <div id="home-date-menu" class="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-medium p-3 w-48 hidden z-50">
+                            <button onclick="setHomeDate('今日')" class="block w-full text-left py-2 hover:bg-gray-100 rounded px-2">今日</button>
+                            <button onclick="setHomeDate('昨日')" class="block w-full text-left py-2 hover:bg-gray-100 rounded px-2">昨日</button>
+                            <button onclick="setHomeDate('本周')" class="block w-full text-left py-2 hover:bg-gray-100 rounded px-2">本周</button>
+                            <button onclick="setHomeDate('本月')" class="block w-full text-left py-2 hover:bg-gray-100 rounded px-2">本月</button>
+                            <hr class="my-2">
+                            <button onclick="openHomeCalendar()" class="block w-full text-left py-2 hover:bg-gray-100 rounded px-2">自定义时间段</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-px bg-gray-100">
+                    <div class="bg-white p-4 text-center"><p class="text-gray-500 text-sm">次卡</p><p id="stat-card" class="stat-number">0.00</p></div>
+                    <div class="bg-white p-4 text-center"><p class="text-gray-500 text-sm">充值</p><p id="stat-recharge" class="stat-number">0.00</p></div>
+                    <div class="bg-white p-4 text-center"><p class="text-gray-500 text-sm">现金</p><p id="stat-cash" class="stat-number">0.00</p></div>
+                    <div class="bg-white p-4 text-center"><p class="text-gray-500 text-sm">耗卡</p><p id="stat-consume" class="stat-number">0.00</p></div>
+                    <div class="bg-white p-4 text-center"><p class="text-gray-500 text-sm">业绩</p><p id="stat-work" class="stat-number">0.00</p></div>
+                    <div class="bg-white p-4 text-center"><p class="text-gray-500 text-sm">散客</p><p id="stat-walkin" class="font-bold">0</p></div>
+                    <div class="bg-white p-4 text-center"><p class="text-gray-500 text-sm">新增</p><p id="stat-new" class="font-bold">0</p></div>
+                    <div class="bg-white p-4 text-center"><p class="text-gray-500 text-sm">会员</p><p id="stat-member" class="font-bold">0</p></div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-4 gap-3">
+                <button onclick="navigate('addMember')" class="card p-4 flex flex-col items-center">
+                    <i class="fa fa-user-plus text-2xl text-primary mb-2"></i>
+                    <span class="text-xs">添加会员</span>
+                </button>
+                <button onclick="navigate('memberList')" class="card p-4 flex flex-col items-center">
+                    <i class="fa fa-users text-2xl text-primary mb-2"></i>
+                    <span class="text-xs">会员管理</span>
+                </button>
+                <button onclick="navigate('walkin')" class="card p-4 flex flex-col items-center">
+                    <i class="fa fa-shopping-bag text-2xl text-primary mb-2"></i>
+                    <span class="text-xs">散客消费</span>
+                </button>
+                <button onclick="navigate('settings')" class="card p-4 flex flex-col items-center">
+                    <i class="fa fa-cog text-2xl text-primary mb-2"></i>
+                    <span class="text-xs">系统设置</span>
+                </button>
+            </div>
+        </div>
+        <!-- 订单页面 -->
+        <div id="page-orders" class="page page-scroll hidden p-4">
+            <div class="card p-3 mb-4">
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button onclick="filterOrders('all')" class="px-3 py-1 rounded-lg text-sm filter-active">全部</button>
+                    <button onclick="filterOrders('recharge')" class="px-3 py-1 rounded-lg text-sm bg-gray-100">会员充值</button>
+                    <button onclick="filterOrders('card')" class="px-3 py-1 rounded-lg text-sm bg-gray-100">购买次卡</button>
+                    <button onclick="filterOrders('consume')" class="px-3 py-1 rounded-lg text-sm bg-gray-100">储值消费</button>
+                    <button onclick="filterOrders('walkin')" class="px-3 py-1 rounded-lg text-sm bg-gray-100">散客消费</button>
+                </div>
+                
+                <div class="bg-white border rounded-lg p-3" onclick="openOrdersCalendar()">
+                    <div class="flex items-center">
+                        <span class="text-lg font-bold mr-3" id="orders-date-text">今天</span>
+                        <span id="orders-date-range"></span>
+                        <i class="fa fa-angle-right text-gray-400 ml-auto"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="orders-list">
+                <div class="text-center text-gray-400 py-20">
+                    <i class="fa fa-list-alt text-5xl"></i>
+                    <p class="mt-2">暂无订单</p>
+                </div>
+            </div>
+        </div>
+        <!-- 订单详情页面 -->
+        <div id="page-orderDetail" class="page page-scroll hidden p-4">
+            <div class="card overflow-hidden mb-4">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="text-lg font-semibold flex items-center">
+                        <span class="w-1 h-6 bg-primary rounded mr-2"></span>
+                        订单详情
+                    </h3>
+                </div>
+                <div class="p-4">
+                    <div class="detail-item"><span class="text-gray-500">订单ID</span><span id="detail-id"></span></div>
+                    <div class="detail-item"><span class="text-gray-500">订单类型</span><span id="detail-type"></span></div>
+                    <div class="detail-item"><span class="text-gray-500">客户名称</span><span id="detail-member"></span></div>
+                    <div class="detail-item"><span class="text-gray-500">下单时间</span><span id="detail-time"></span></div>
+                    <div class="detail-item"><span class="text-gray-500">应收金额</span><span id="detail-amount" class="text-primary font-bold"></span></div>
+                    <div class="detail-item"><span class="text-gray-500">实付金额</span><span id="detail-actual" class="text-primary font-bold"></span></div>
+                </div>
+            </div>
+            
+            <div class="card overflow-hidden mb-4">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="font-semibold">消费项目</h3>
+                </div>
+                <div id="detail-items" class="p-4">
+                    <div class="text-center text-gray-400">无消费项目</div>
+                </div>
+            </div>
+            
+            <button onclick="cancelCurrentOrder()" class="w-full bg-danger text-white py-3 rounded-lg font-semibold shadow-medium">
+                <i class="fa fa-trash mr-2"></i>撤销此订单
+            </button>
+        </div>
+        <!-- 数据中心页面 -->
+        <div id="page-data" class="page hidden">
+            <div class="gradient-bg text-white flex">
+                <button id="tab-business" class="flex-1 py-4 top-tab-active" onclick="switchDataTab('business')">经营数据</button>
+                <button id="tab-customer" class="flex-1 py-4" onclick="switchDataTab('customer')">客户分析</button>
+            </div>
+            
+            <div class="bg-white p-4 border-b" onclick="openDataCalendar()">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold mr-3" id="data-date-text">今天</span>
+                    <span id="data-date-range"></span>
+                    <i class="fa fa-angle-right text-gray-400 ml-auto"></i>
+                </div>
+            </div>
+            
+            <!-- 经营数据 -->
+            <div id="data-business" class="page-scroll p-4">
+                <div class="card overflow-hidden">
+                    <div class="p-4 border-b border-gray-100">
+                        <h3 class="text-lg font-semibold flex items-center">
+                            <span class="w-1 h-6 bg-primary rounded mr-2"></span>
+                            经营情况
+                        </h3>
+                    </div>
+                    <div class="grid grid-cols-2 gap-px bg-gray-100">
+                        <div class="bg-white p-6 text-center"><p class="text-gray-500 mb-2">收款金额（元）</p><p id="business-income" class="stat-number text-2xl">0.00</p></div>
+                        <div class="bg-white p-6 text-center"><p class="text-gray-500 mb-2">充值金额（元）</p><p id="business-recharge" class="stat-number text-2xl">0.00</p></div>
+                        <div class="bg-white p-6 text-center"><p class="text-gray-500 mb-2">次卡金额（元）</p><p id="business-card" class="stat-number text-2xl">0.00</p></div>
+                        <div class="bg-white p-6 text-center"><p class="text-gray-500 mb-2">散客金额（元）</p><p id="business-walkin" class="stat-number text-2xl">0.00</p></div>
+                        <div class="bg-white p-6 text-center"><p class="text-gray-500 mb-2">补现金额（元）</p><p id="business-cash" class="stat-number text-2xl">0.00</p></div>
+                    </div>
+                </div>
+                
+                <div class="card p-4 mt-4">
+                    <h3 class="font-semibold mb-4">数据管理</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="exportAllData()" class="gradient-btn text-white py-3 rounded-lg font-semibold">
+                            <i class="fa fa-download mr-2"></i>导出全部
+                        </button>
+                        <button onclick="exportBusinessData()" class="gradient-btn text-white py-3 rounded-lg font-semibold">
+                            <i class="fa fa-bar-chart mr-2"></i>导出经营
+                        </button>
+                        <label class="bg-gray-200 py-3 rounded-lg font-semibold text-center cursor-pointer">
+                            <i class="fa fa-upload mr-2"></i>导入Excel
+                            <input type="file" id="import-excel" accept=".xlsx,.xls" class="hidden">
+                        </label>
+                    </div>
+                    <p class="text-gray-500 text-sm mt-3">导出全部会导出所有会员、服务、订单数据</p>
+                    <p class="text-gray-500 text-sm">导出经营仅导出当前日期范围的经营数据</p>
+                    <p class="text-gray-500 text-sm">导入功能会覆盖当前所有数据，请谨慎操作</p>
+                </div>
+            </div>
+            
+            <!-- 客户分析 -->
+            <div id="data-customer" class="page-scroll p-4 hidden">
+                <div class="card overflow-hidden">
+                    <div class="p-4 border-b border-gray-100">
+                        <h3 class="text-lg font-semibold flex items-center">
+                            <span class="w-1 h-6 bg-primary rounded mr-2"></span>
+                            客户概况
+                        </h3>
+                    </div>
+                    <div class="grid grid-cols-2 gap-px bg-gray-100">
+                        <div class="bg-white p-6 text-center"><p class="text-gray-500 mb-2">人次</p><p id="customer-visits" class="stat-number text-2xl">0</p></div>
+                        <div class="bg-white p-6 text-center"><p class="text-gray-500 mb-2">会员数</p><p id="customer-members" class="stat-number text-2xl">0</p></div>
+                        <div class="bg-white p-6 text-center"><p class="text-gray-500 mb-2">多次到店会员数</p><p id="customer-repeat" class="stat-number text-2xl">0</p></div>
+                        <div class="bg-white p-6 text-center"><p class="text-gray-500 mb-2">散客数</p><p id="customer-walkin" class="stat-number text-2xl">0</p></div>
+                        <div class="bg-white p-6 text-center"><p class="text-gray-500 mb-2">新增会员</p><p id="customer-new" class="stat-number text-2xl">0</p></div>
+                        <div class="bg-white p-6 text-center"><p class="text-gray-500 mb-2">预约数</p><p id="customer-reserve" class="stat-number text-2xl">0</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 会员列表页面 -->
+        <div id="page-memberList" class="page page-scroll hidden p-4">
+            <div class="mb-4">
+                <input type="text" id="member-search" placeholder="搜索会员姓名或手机号" class="w-full px-3 py-2 border rounded-lg" oninput="searchMembers()">
+            </div>
+            <div id="member-list">
+                <div class="text-center text-gray-400 py-20">
+                    <i class="fa fa-user-circle text-5xl"></i>
+                    <p class="mt-2">暂无会员</p>
+                    <p class="text-sm">点击右上角"+"添加</p>
+                </div>
+            </div>
+        </div>
+        <!-- 添加会员页面 -->
+        <div id="page-addMember" class="page page-scroll hidden p-4">
+            <div class="card p-4 space-y-4">
+                <div>
+                    <label class="block text-gray-700 mb-1">姓名</label>
+                    <input type="text" id="member-name" class="w-full">
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-1">手机号</label>
+                    <input type="tel" id="member-phone" class="w-full">
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-1">生日</label>
+                    <input type="date" id="member-birthday" class="w-full">
+                </div>
+            </div>
+            <button onclick="saveNewMember()" class="w-full gradient-btn text-white py-3 rounded-lg mt-4 font-semibold">保存会员</button>
+        </div>
+        <!-- 会员详情页面 -->
+        <div id="page-memberDetail" class="page page-scroll hidden p-4">
+            <div class="card overflow-hidden mb-4">
+                <div class="gradient-bg text-white p-6">
+                    <div class="flex items-center">
+                        <div class="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mr-4">
+                            <span id="member-avatar-detail" class="text-2xl font-bold">会</span>
+                        </div>
+                        <div>
+                            <h3 id="member-name-detail" class="text-xl font-bold">会员姓名</h3>
+                            <p id="member-phone-detail" class="text-white/80">138****8888</p>
+                            <p id="member-level-detail" class="text-sm mt-1">普通会员</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-px bg-gray-100">
+                    <div class="bg-white p-3 text-center"><p class="text-gray-500 text-sm">余额</p><p id="member-balance-detail" class="stat-number">¥0.00</p></div>
+                    <div class="bg-white p-3 text-center"><p class="text-gray-500 text-sm">累计</p><p id="member-total-detail" class="font-bold">¥0.00</p></div>
+                </div>
+                <div class="grid grid-cols-4 gap-2 p-4">
+                    <button onclick="showRechargeModal()" class="bg-gray-100 py-2 rounded-lg text-sm hover:bg-gray-200 transition">储值充值</button>
+                    <button onclick="showBuyCardModal()" class="bg-gray-100 py-2 rounded-lg text-sm hover:bg-gray-200 transition">购买次卡</button>
+                    <button onclick="startBalanceConsume()" class="bg-gray-100 py-2 rounded-lg text-sm hover:bg-gray-200 transition">储值消费</button>
+                    <button onclick="startCardConsume()" class="bg-gray-100 py-2 rounded-lg text-sm hover:bg-gray-200 transition">次卡消费</button>
+                </div>
+            </div>
+            
+            <div class="card overflow-hidden mb-4">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="font-semibold">消费记录</h3>
+                </div>
+                <div id="member-orders" class="divide-y divide-gray-100">
+                    <div class="p-4 text-center text-gray-400"><p>暂无消费记录</p></div>
+                </div>
+            </div>
+            
+            <div class="card overflow-hidden mt-4">
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="font-semibold">会员次卡</h3>
+                </div>
+                <div id="member-cards" class="divide-y divide-gray-100">
+                    <div class="p-4 text-center text-gray-400"><p>暂无次卡</p></div>
+                </div>
+            </div>
+            
+            <button onclick="deleteCurrentMember()" class="w-full bg-danger text-white py-3 rounded-lg mt-4 font-semibold shadow-medium">删除会员</button>
+        </div>
+        <!-- 储值消费页面 -->
+        <div id="page-consume" class="page hidden">
+            <div class="flex border-b bg-white">
+                <button class="flex-1 py-3 tab-active" onclick="switchConsumeTab(this, 'service')">服务</button>
+                <button class="flex-1 py-3 text-gray-500" onclick="switchConsumeTab(this, 'goods')">产品</button>
+            </div>
+            <div class="p-3 bg-gray-50">
+                <input type="text" id="consume-search" placeholder="可使用拼音首字母搜索服务" class="w-full px-3 py-2 rounded-lg" oninput="searchConsumeItems()">
+            </div>
+            <div class="flex split-scroll">
+                <div class="w-1/3 bg-gray-50" id="consume-categories">
+                    <div class="py-3 pl-3 cate-active" onclick="switchConsumeCategory(this, 'all')">全部</div>
+                </div>
+                <div class="w-2/3 p-3 space-y-3" id="consume-items">
+                    <div class="text-center text-gray-400 py-10">
+                        <p>先去系统设置添加服务项目</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-4 bottom-bar shadow-medium">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <label><input type="radio" name="consume-sex" value="男" checked> 男客</label>
+                        <label class="ml-3"><input type="radio" name="consume-sex" value="女"> 女客</label>
+                    </div>
+                    <button onclick="goToConsumeConfirm()" class="px-6 py-2 gradient-btn text-white rounded-lg font-semibold">下一步</button>
+                </div>
+                <div class="flex justify-between items-center mt-2">
+                    <div>
+                        <span class="text-sm">卡扣：<span id="consume-deduct" class="text-primary font-bold">¥0.00</span></span>
+                        <br>
+                        <span class="text-sm">应收：<span id="consume-total" class="text-primary font-bold">¥0.00</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 储值消费确认页面 -->
+        <div id="page-consumeConfirm" class="page page-scroll has-bottom-bar hidden p-4">
+            <div id="consume-confirm-list"></div>
+            
+            <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-4 bottom-bar shadow-medium">
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <label><input type="radio" name="confirm-sex" value="男" checked> 男客</label>
+                        <label class="ml-3"><input type="radio" name="confirm-sex" value="女"> 女客</label>
+                    </div>
+                    <button onclick="showSettleDateModal()" class="text-primary text-sm">
+                        <i class="fa fa-calendar mr-1"></i>修改日期
+                    </button>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span class="text-sm">应收：<span id="confirm-total" class="text-primary font-bold">¥0.00</span></span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm">实付：</span>
+                        <input type="number" id="confirm-actual" class="w-20 px-2 py-1 border rounded text-sm text-primary font-bold" value="0.00">
+                        <button onclick="confirmBalanceConsume()" class="px-4 py-2 gradient-btn text-white rounded">结算</button>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-sm">余额：<span id="confirm-balance" class="text-primary font-bold">¥0.00</span></span>
+                    <button class="px-4 py-2 bg-gray-200 rounded">挂单</button>
+                </div>
+            </div>
+        </div>
+        <!-- 次卡消费页面 -->
+        <div id="page-cardConsume" class="page hidden">
+            <div class="split-scroll" id="card-consume-items">
+                <div class="text-center text-gray-400 py-20">
+                    <p>该会员暂无可用次卡</p>
+                </div>
+            </div>
+            
+            <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-4 bottom-bar shadow-medium">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <label><input type="radio" name="card-sex" value="男" checked> 男客</label>
+                        <label class="ml-3"><input type="radio" name="card-sex" value="女"> 女客</label>
+                    </div>
+                    <button onclick="goToCardConsumeConfirm()" class="px-6 py-2 gradient-btn text-white rounded-lg font-semibold">下一步</button>
+                </div>
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-sm">扣次：<span id="card-consume-total" class="text-primary font-bold">0次</span></span>
+                </div>
+            </div>
+        </div>
+        <!-- 次卡消费确认页面 -->
+        <div id="page-cardConsumeConfirm" class="page page-scroll has-bottom-bar hidden p-4">
+            <div id="card-confirm-list"></div>
+            
+            <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-4 bottom-bar shadow-medium">
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <label><input type="radio" name="card-confirm-sex" value="男" checked> 男客</label>
+                        <label class="ml-3"><input type="radio" name="card-confirm-sex" value="女"> 女客</label>
+                    </div>
+                    <button onclick="showSettleDateModal()" class="text-primary text-sm">
+                        <i class="fa fa-calendar mr-1"></i>修改日期
+                    </button>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm">扣次：<span id="card-confirm-total" class="text-primary font-bold">0次</span></span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm">实付：</span>
+                        <input type="number" id="card-confirm-actual" class="w-20 px-2 py-1 border rounded text-sm text-primary font-bold" value="0.00">
+                        <button onclick="confirmCardConsume()" class="px-4 py-2 gradient-btn text-white rounded">结算</button>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-2">
+                    <button class="px-4 py-2 bg-gray-200 rounded">挂单</button>
+                </div>
+            </div>
+        </div>
+        <!-- 散客消费页面 -->
+        <div id="page-walkin" class="page hidden">
+            <div class="flex border-b bg-white">
+                <button class="flex-1 py-3 tab-active" onclick="switchWalkinTab(this, 'service')">服务</button>
+                <button class="flex-1 py-3 text-gray-500" onclick="switchWalkinTab(this, 'goods')">产品</button>
+            </div>
+            <div class="p-3 bg-gray-50">
+                <input type="text" id="walkin-search" placeholder="可使用拼音首字母搜索服务" class="w-full px-3 py-2 rounded-lg" oninput="searchWalkinItems()">
+            </div>
+            <div class="flex split-scroll">
+                <div class="w-1/3 bg-gray-50" id="walkin-categories">
+                    <div class="py-3 pl-3 cate-active" onclick="switchWalkinCategory(this, 'all')">全部</div>
+                </div>
+                <div class="w-2/3 p-3 space-y-3" id="walkin-items">
+                    <div class="text-center text-gray-400 py-10">
+                        <p>先去系统设置添加服务项目</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-4 bottom-bar shadow-medium">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <label><input type="radio" name="walkin-sex" value="男" checked> 男客</label>
+                        <label class="ml-3"><input type="radio" name="walkin-sex" value="女"> 女客</label>
+                    </div>
+                    <button onclick="goToWalkinConfirm()" class="px-6 py-2 gradient-btn text-white rounded-lg font-semibold">下一步</button>
+                </div>
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-sm">应收：<span id="walkin-total" class="text-primary font-bold">¥0.00</span></span>
+                </div>
+            </div>
+        </div>
+        <!-- 散客消费确认页面 -->
+        <div id="page-walkinConfirm" class="page page-scroll has-bottom-bar hidden p-4">
+            <div id="walkin-confirm-list"></div>
+            
+            <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-4 bottom-bar shadow-medium">
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <label><input type="radio" name="walkin-confirm-sex" value="男" checked> 男客</label>
+                        <label class="ml-3"><input type="radio" name="walkin-confirm-sex" value="女"> 女客</label>
+                    </div>
+                    <button onclick="showSettleDateModal()" class="text-primary text-sm">
+                        <i class="fa fa-calendar mr-1"></i>修改日期
+                    </button>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm">应收：<span id="walkin-confirm-total" class="text-primary font-bold">¥0.00</span></span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm">实付：</span>
+                        <input type="number" id="walkin-confirm-actual" class="w-20 px-2 py-1 border rounded text-sm text-primary font-bold" value="0.00">
+                        <button onclick="confirmWalkinConsume()" class="px-4 py-2 gradient-btn text-white rounded">结算</button>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-2">
+                    <button class="px-4 py-2 bg-gray-200 rounded">挂单</button>
+                </div>
+            </div>
+        </div>
+        <!-- 系统设置页面 -->
+        <div id="page-settings" class="page page-scroll hidden p-4 space-y-4">
+            <button onclick="navigate('serviceManage')" class="w-full card p-4 flex justify-between items-center">
+                <span><i class="fa fa-cut text-primary mr-2"></i>服务与分类管理</span>
+                <i class="fa fa-angle-right text-gray-400"></i>
+            </button>
+            <button onclick="navigate('goods')" class="w-full card p-4 flex justify-between items-center">
+                <span><i class="fa fa-shopping-bag text-primary mr-2"></i>商品管理</span>
+                <i class="fa fa-angle-right text-gray-400"></i>
+            </button>
+            <button onclick="navigate('cardManage')" class="w-full card p-4 flex justify-between items-center">
+                <span><i class="fa fa-credit-card text-primary mr-2"></i>次卡管理</span>
+                <i class="fa fa-angle-right text-gray-400"></i>
+            </button>
+            <button onclick="navigate('level')" class="w-full card p-4 flex justify-between items-center">
+                <span><i class="fa fa-star text-primary mr-2"></i>储值卡等级</span>
+                <i class="fa fa-angle-right text-gray-400"></i>
+            </button>
+        </div>
+        <!-- 服务与分类管理页面 -->
+        <div id="page-serviceManage" class="page hidden">
+            <div class="flex split-scroll">
+                <div class="w-1/3 bg-gray-50" id="service-categories">
+                    <div class="py-3 pl-3 cate-active" onclick="switchServiceCategory(this, 'all')">全部服务</div>
+                </div>
+                <div class="w-2/3 p-3" id="service-items">
+                    <div class="text-center text-gray-400 py-10">
+                        <p>先添加服务分类</p>
+                        <p class="text-sm">点击右上角三点菜单添加</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 商品管理页面 -->
+        <div id="page-goods" class="page page-scroll hidden p-4">
+            <div id="goods-list">
+                <div class="text-center text-gray-400 py-20">
+                    <i class="fa fa-shopping-bag text-5xl"></i>
+                    <p class="mt-2">暂无商品</p>
+                    <p class="text-sm">点击右上角"+"添加</p>
+                </div>
+            </div>
+        </div>
+        <!-- 次卡管理页面 -->
+        <div id="page-cardManage" class="page page-scroll hidden p-4">
+            <div id="card-list">
+                <div class="text-center text-gray-400 py-20">
+                    <i class="fa fa-credit-card text-5xl"></i>
+                    <p class="mt-2">暂无次卡类型</p>
+                    <p class="text-sm">点击右上角"+"添加</p>
+                </div>
+            </div>
+        </div>
+        <!-- 会员等级管理页面 -->
+        <div id="page-level" class="page page-scroll hidden p-4">
+            <div id="level-list">
+                <div class="card p-4 flex justify-between items-center">
+                    <div>
+                        <h3 class="font-semibold">普通会员</h3>
+                        <p class="text-gray-500 text-sm">折扣: 10折(无折扣)</p>
+                    </div>
+                    <span class="text-gray-400 text-sm">系统默认</span>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!-- 底部导航 -->
+    <footer class="bg-white border-t flex">
+        <button onclick="navigate('home')" class="flex-1 py-3 text-center text-primary">
+            <i class="fa fa-home text-xl"></i><p class="text-xs mt-1">首页</p>
+        </button>
+        <button onclick="navigate('orders')" class="flex-1 py-3 text-center text-gray-500">
+            <i class="fa fa-list-alt text-xl"></i><p class="text-xs mt-1">订单</p>
+        </button>
+        <button onclick="navigate('data')" class="flex-1 py-3 text-center text-gray-500">
+            <i class="fa fa-bar-chart text-xl"></i><p class="text-xs mt-1">数据</p>
+        </button>
+        <button onclick="navigate('settings')" class="flex-1 py-3 text-center text-gray-500">
+            <i class="fa fa-cog text-xl"></i><p class="text-xs mt-1">设置</p>
+        </button>
+    </footer>
+    <!-- 所有弹窗 -->
+    <!-- 添加分类弹窗 -->
+    <div id="add-category-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm p-6">
+            <h3 class="text-lg font-semibold mb-4 text-center">添加服务分类</h3>
+            <input type="text" id="category-name" placeholder="分类名称" class="w-full mb-6">
+            <div class="flex space-x-3">
+                <button onclick="closeModal('add-category-modal')" class="flex-1 bg-gray-200 py-2 rounded-lg">取消</button>
+                <button onclick="addNewCategory()" class="flex-1 gradient-btn text-white py-2 rounded-lg">确定</button>
+            </div>
+        </div>
+    </div>
+    <!-- 编辑分类弹窗 -->
+    <div id="edit-category-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm p-6">
+            <h3 class="text-lg font-semibold mb-4 text-center">编辑服务分类</h3>
+            <input type="hidden" id="edit-category-index">
+            <input type="text" id="edit-category-name" placeholder="分类名称" class="w-full mb-6">
+            <div class="flex space-x-3">
+                <button onclick="closeModal('edit-category-modal')" class="flex-1 bg-gray-200 py-2 rounded-lg">取消</button>
+                <button onclick="saveEditedCategory()" class="flex-1 gradient-btn text-white py-2 rounded-lg">保存</button>
+            </div>
+        </div>
+    </div>
+    <!-- 添加服务弹窗 -->
+    <div id="add-service-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm p-6">
+            <h3 class="text-lg font-semibold mb-4 text-center">添加服务</h3>
+            <div class="space-y-4">
+                <input type="text" id="service-name" placeholder="服务名称" class="w-full">
+                <select id="service-category" class="w-full">
+                    <option value="">请选择分类</option>
+                </select>
+                <input type="number" id="service-price" placeholder="原价" class="w-full">
+                <input type="number" id="service-mprice" placeholder="会员价" class="w-full">
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeModal('add-service-modal')" class="flex-1 bg-gray-200 py-2 rounded-lg">取消</button>
+                <button onclick="addNewService()" class="flex-1 gradient-btn text-white py-2 rounded-lg">确定</button>
+            </div>
+        </div>
+    </div>
+    <!-- 编辑服务弹窗 -->
+    <div id="edit-service-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm p-6">
+            <h3 class="text-lg font-semibold mb-4 text-center">编辑服务</h3>
+            <div class="space-y-4">
+                <input type="hidden" id="edit-service-id">
+                <input type="text" id="edit-service-name" placeholder="服务名称" class="w-full">
+                <select id="edit-service-category" class="w-full">
+                    <option value="">请选择分类</option>
+                </select>
+                <input type="number" id="edit-service-price" placeholder="原价" class="w-full">
+                <input type="number" id="edit-service-mprice" placeholder="会员价" class="w-full">
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeModal('edit-service-modal')" class="flex-1 bg-gray-200 py-2 rounded-lg">取消</button>
+                <button onclick="saveEditedService()" class="flex-1 gradient-btn text-white py-2 rounded-lg">保存</button>
+            </div>
+        </div>
+    </div>
+    <!-- 添加商品弹窗 -->
+    <div id="add-goods-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm p-6">
+            <h3 class="text-lg font-semibold mb-4 text-center">添加商品</h3>
+            <div class="space-y-4">
+                <input type="text" id="goods-name" placeholder="商品名称" class="w-full">
+                <input type="number" id="goods-price" placeholder="原价" class="w-full">
+                <input type="number" id="goods-mprice" placeholder="会员价" class="w-full">
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeModal('add-goods-modal')" class="flex-1 bg-gray-200 py-2 rounded-lg">取消</button>
+                <button onclick="addNewGoods()" class="flex-1 gradient-btn text-white py-2 rounded-lg">确定</button>
+            </div>
+        </div>
+    </div>
+    <!-- 添加次卡弹窗 -->
+    <div id="add-card-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm p-6">
+            <h3 class="text-lg font-semibold mb-4 text-center">添加次卡</h3>
+            <div class="space-y-4">
+                <input type="text" id="card-name" placeholder="次卡名称" class="w-full">
+                <input type="number" id="card-price" placeholder="售价" class="w-full">
+                <input type="number" id="card-count" placeholder="包含次数" class="w-full">
+                <input type="number" id="card-give" placeholder="赠送次数（选填）" class="w-full" value="0">
+                <label class="block text-gray-700">绑定服务</label>
+                <select id="card-service" class="w-full">
+                    <option value="">请先添加服务</option>
+                </select>
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeModal('add-card-modal')" class="flex-1 bg-gray-200 py-2 rounded-lg">取消</button>
+                <button onclick="addNewCard()" class="flex-1 gradient-btn text-white py-2 rounded-lg">确定</button>
+            </div>
+        </div>
+    </div>
+    <!-- 添加等级弹窗 -->
+    <div id="add-level-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm p-6">
+            <h3 class="text-lg font-semibold mb-4 text-center">添加会员等级</h3>
+            <div class="space-y-4">
+                <input type="text" id="level-name" placeholder="等级名称" class="w-full">
+                <input type="number" id="level-discount" placeholder="折扣(如8.5表示8.5折)" class="w-full" step="0.1" min="0" max="10">
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeModal('add-level-modal')" class="flex-1 bg-gray-200 py-2 rounded-lg">取消</button>
+                <button onclick="addNewLevel()" class="flex-1 gradient-btn text-white py-2 rounded-lg">确定</button>
+            </div>
+        </div>
+    </div>
+    <!-- 充值弹窗 -->
+    <div id="recharge-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm p-6">
+            <h3 class="text-lg font-semibold mb-4 text-center">储值充值</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 mb-1">会员等级</label>
+                    <select id="recharge-level" class="w-full">
+                        <option value="0">普通会员(10折)</option>
+                    </select>
+                </div>
+                <input type="number" id="recharge-amount" placeholder="充值金额" class="w-full">
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setRechargeAmount(100)" class="bg-gray-100 py-2 rounded-lg">¥100</button>
+                    <button onclick="setRechargeAmount(200)" class="bg-gray-100 py-2 rounded-lg">¥200</button>
+                    <button onclick="setRechargeAmount(500)" class="bg-gray-100 py-2 rounded-lg">¥500</button>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-sm mr-2">实付金额：</span>
+                    <input type="number" id="recharge-actual" class="w-full px-2 py-1 border rounded text-sm" value="0.00">
+                </div>
+                <hr class="my-2">
+                <div class="text-sm text-gray-600 font-medium">赠送服务（选填）</div>
+                <div class="flex gap-2">
+                    <select id="recharge-gift-service" class="flex-1 px-2 py-1 border rounded text-sm">
+                        <option value="">选择赠送服务</option>
+                    </select>
+                    <input type="number" id="recharge-gift-count" class="w-16 px-2 py-1 border rounded text-sm" value="1" min="1">
+                </div>
+                <!-- ✅ 修复1：添加修改日期按钮到充值弹窗 -->
+                <div class="flex justify-end">
+                    <button onclick="showSettleDateModal()" class="text-primary text-sm">
+                        <i class="fa fa-calendar mr-1"></i>修改日期
+                    </button>
+                </div>
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeModal('recharge-modal')" class="flex-1 bg-gray-200 py-2 rounded-lg">取消</button>
+                <button onclick="processRecharge()" class="flex-1 gradient-btn text-white py-2 rounded-lg">确认充值</button>
+            </div>
+        </div>
+    </div>
+    <!-- 购买次卡弹窗 -->
+    <div id="buy-card-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm p-6">
+            <h3 class="text-lg font-semibold mb-4 text-center">购买次卡</h3>
+            <div id="buy-card-list" class="space-y-3">
+                <p class="text-center text-gray-400">暂无可用次卡</p>
+            </div>
+            <div class="mt-3 flex items-center">
+                <span class="text-sm mr-2">实付金额：</span>
+                <input type="number" id="buy-card-actual" class="w-full px-2 py-1 border rounded text-sm" value="0.00">
+            </div>
+            <!-- ✅ 修复：添加修改日期按钮到购买次卡弹窗 -->
+            <div class="flex justify-end mt-3">
+                <button onclick="showSettleDateModal()" class="text-primary text-sm">
+                    <i class="fa fa-calendar mr-1"></i>修改日期
+                </button>
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeModal('buy-card-modal')" class="flex-1 bg-gray-200 py-2 rounded-lg">取消</button>
+            </div>
+        </div>
+    </div>
+    <!-- 通用日历弹窗 -->
+    <div id="calendar-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm overflow-hidden">
+            <div class="p-4 text-center border-b">
+                <h3 id="calendar-title" class="text-lg font-semibold"></h3>
+            </div>
+            <div class="flex border-b">
+                <button onclick="setQuickDate('today')" class="flex-1 py-3 text-sm">今天</button>
+                <button onclick="setQuickDate('week')" class="flex-1 py-3 text-sm">本周</button>
+                <button onclick="setQuickDate('lastweek')" class="flex-1 py-3 text-sm">上周</button>
+                <button onclick="setQuickDate('month')" class="flex-1 py-3 text-sm">本月</button>
+                <button onclick="setQuickDate('lastmonth')" class="flex-1 py-3 text-sm">上月</button>
+                <button onclick="setQuickDate('year')" class="flex-1 py-3 text-sm">本年</button>
+            </div>
+            <div class="flex justify-between items-center p-4">
+                <button onclick="prevYear()" class="text-primary"><i class="fa fa-angle-left"></i></button>
+                <span id="calendar-year" class="font-semibold">2026 年</span>
+                <button onclick="nextYear()" class="text-primary"><i class="fa fa-angle-right"></i></button>
+                <button onclick="prevMonth()" class="text-primary ml-4"><i class="fa fa-angle-left"></i></button>
+                <span id="calendar-month" class="font-semibold">四月</span>
+                <button onclick="nextMonth()" class="text-primary"><i class="fa fa-angle-right"></i></button>
+            </div>
+            <div class="grid grid-cols-7 text-center text-gray-500 text-sm pb-2">
+                <div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div>
+            </div>
+            <div id="calendar-days" class="grid grid-cols-7 gap-1 px-2 pb-4"></div>
+            <div class="flex border-t">
+                <button onclick="closeModal('calendar-modal')" class="flex-1 py-4">取消</button>
+                <button onclick="confirmCalendar()" class="flex-1 py-4 gradient-btn text-white">确定</button>
+            </div>
+        </div>
+    </div>
+    <!-- 结算日期修改弹窗 -->
+    <div id="settle-date-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm p-6">
+            <h3 class="text-lg font-semibold mb-4 text-center">修改结算日期</h3>
+            <div>
+                <label class="block text-gray-700 mb-1">日期时间</label>
+                <input type="datetime-local" id="settle-datetime" class="w-full">
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button onclick="closeModal('settle-date-modal')" class="flex-1 bg-gray-200 py-2 rounded-lg">取消</button>
+                <button onclick="confirmSettleDate()" class="flex-1 gradient-btn text-white py-2 rounded-lg">确定</button>
+            </div>
+        </div>
+    </div>
+    <!-- 修改单价弹窗 -->
+    <div id="edit-price-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm p-6">
+            <h3 class="text-lg font-semibold mb-4 text-center">修改单价</h3>
+            <input type="hidden" id="edit-price-index">
+            <input type="hidden" id="edit-price-type">
+            <input type="number" id="new-price" placeholder="新单价" class="w-full mb-6">
+            <div class="flex space-x-3">
+                <button onclick="closeModal('edit-price-modal')" class="flex-1 bg-gray-200 py-2 rounded-lg">取消</button>
+                <button onclick="saveNewPrice()" class="flex-1 gradient-btn text-white py-2 rounded-lg">保存</button>
+            </div>
+        </div>
+    </div>
+    <!-- 添加会员后开卡选择弹窗 - ✅ 修复：添加白色背景和圆角 -->
+    <div id="open-card-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm overflow-hidden">
+            <div class="p-6 text-center">
+                <h3 class="text-lg font-semibold mb-2">温馨提示</h3>
+                <p class="text-gray-600 mb-6">是否去开卡</p>
+            </div>
+            <div class="border-t">
+                <button onclick="openSavingsCard()" class="w-full py-4 text-primary font-medium border-b">开储蓄卡</button>
+                <button onclick="closeModal('open-card-modal')" class="w-full py-4 text-primary font-medium border-b">取消</button>
+                <button onclick="openTimesCard()" class="w-full py-4 text-primary font-medium">开次卡</button>
+            </div>
+        </div>
+    </div>
+    <!-- 导入模式选择弹窗 -->
+    <div id="import-mode-modal" class="modal">
+        <div class="modal-content bg-white rounded-xl w-11/12 max-w-sm overflow-hidden">
+            <div class="p-6 text-center border-b">
+                <h3 class="text-lg font-semibold mb-2">选择导入模式</h3>
+                <p class="text-gray-500 text-sm">导入前强烈建议先点击"导出全部"备份数据</p>
+            </div>
+            <div class="p-4 space-y-3">
+                <button onclick="startIncrementalImport()" class="w-full gradient-btn text-white py-3 rounded-lg font-semibold">
+                    ✅ 增量合并导入（推荐）
+                    <p class="text-xs mt-1 opacity-90">保留原有数据，只添加新内容，重复ID自动更新</p>
+                </button>
+                <button onclick="startFullImport()" class="w-full bg-danger text-white py-3 rounded-lg font-semibold">
+                    ⚠️ 覆盖全部导入
+                    <p class="text-xs mt-1 opacity-90">清空所有原有数据，完全替换为导入内容</p>
+                </button>
+                <button onclick="closeImportModal()" class="w-full bg-gray-200 py-3 rounded-lg font-semibold">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// ==================== 数据管理 ====================
+let appData = {
+    members: [],
+    categories: ['剪发', '烫发', '染发', '护发'],
+    services: [],
+    goods: [],
+    cards: [],
+    levels: [{ id: 0, name: '普通会员', discount: 10 }],
+    orders: [],
+    currentMember: null,
+    currentOrder: null,
+    currentSettleDate: null,
+    newMemberId: null, // 新添加的会员ID
+    
+    // 日期范围 - ✅ 修复6：动态初始化当前日期
+    homeDate: '本月',
+    homeStart: formatDate(new Date()),
+    homeEnd: formatDate(new Date()),
+    
+    ordersStart: formatDate(new Date()),
+    ordersEnd: formatDate(new Date()),
+    ordersDateText: '今天',
+    
+    dataStart: formatDate(new Date()),
+    dataEnd: formatDate(new Date()),
+    dataDateText: '今天'
+};
+// 本地存储
+function saveToLocalStorage() {
+    localStorage.setItem('hairSalonApp', JSON.stringify(appData));
+}
+function loadFromLocalStorage() {
+    const saved = localStorage.getItem('hairSalonApp');
+    if (saved) {
+        appData = JSON.parse(saved);
+    }
+}
+// 工具函数
+function formatDate(date) {
+    return date.getFullYear() + '-' + 
+           String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+           String(date.getDate()).padStart(2, '0');
+}
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('show');
+}
+// ==================== 页面导航 ====================
+function navigate(page) {
+    // 隐藏所有页面
+    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+    // 显示目标页面
+    document.getElementById(`page-${page}`).classList.remove('hidden');
+    
+    // 更新顶部导航
+    const backBtn = document.getElementById('back-btn');
+    const title = document.getElementById('page-title');
+    const addBtn = document.getElementById('add-btn');
+    const menuBtn = document.getElementById('menu-btn');
+    
+    backBtn.classList.add('hidden');
+    addBtn.classList.add('hidden');
+    menuBtn.classList.add('hidden');
+    document.getElementById('service-menu').classList.remove('show');
+    
+    // 更新底部导航
+    document.querySelectorAll('footer button').forEach(btn => {
+        btn.classList.remove('text-primary');
+        btn.classList.add('text-gray-500');
+    });
+    
+    const footerMap = {
+        'home': 0, 'orders': 1, 'data': 2, 'settings': 3
+    };
+    if (footerMap[page] !== undefined) {
+        document.querySelectorAll('footer button')[footerMap[page]].classList.replace('text-gray-500', 'text-primary');
+    }
+    
+    // ✅ 修复5：离开会员列表页面时清空搜索框
+    if (page !== 'memberList') {
+        document.getElementById('member-search').value = '';
+    }
+    
+    // 页面特定初始化
+    switch(page) {
+        case 'home':
+            title.textContent = '乐思美发';
+            updateHomeStats();
+            break;
+        case 'orders':
+            title.textContent = '订单记录';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('home');
+            filterOrdersByDate();
+            break;
+        case 'orderDetail':
+            title.textContent = '订单详情';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('orders');
+            break;
+        case 'data':
+            title.textContent = '数据中心';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('home');
+            updateDataStats();
+            break;
+        case 'memberList':
+            title.textContent = '会员管理';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('home');
+            addBtn.classList.remove('hidden');
+            addBtn.onclick = () => navigate('addMember');
+            renderMemberList();
+            break;
+        case 'addMember':
+            title.textContent = '添加会员';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('memberList');
+            initAddMemberPage();
+            break;
+        case 'memberDetail':
+            title.textContent = '会员详情';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('memberList');
+            document.getElementById('member-avatar-detail').textContent = appData.currentMember.name.charAt(0);
+            break;
+        case 'consume':
+            title.textContent = '储蓄卡消耗';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('memberDetail');
+            appData.currentSettleDate = null;
+            initConsumePage();
+            break;
+        case 'consumeConfirm':
+            title.textContent = '确认订单';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('consume');
+            break;
+        case 'cardConsume':
+            title.textContent = '次卡消耗';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('memberDetail');
+            appData.currentSettleDate = null;
+            initCardConsumePage();
+            break;
+        case 'cardConsumeConfirm':
+            title.textContent = '确认订单';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('cardConsume');
+            break;
+        case 'walkin':
+            title.textContent = '散客消费';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('home');
+            appData.currentSettleDate = null;
+            initWalkinPage();
+            break;
+        case 'walkinConfirm':
+            title.textContent = '确认订单';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('walkin');
+            break;
+        case 'settings':
+            title.textContent = '系统设置';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('home');
+            break;
+        case 'serviceManage':
+            title.textContent = '服务与分类管理';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('settings');
+            menuBtn.classList.remove('hidden');
+            renderServiceManagePage();
+            break;
+        case 'goods':
+            title.textContent = '商品管理';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('settings');
+            addBtn.classList.remove('hidden');
+            addBtn.onclick = () => document.getElementById('add-goods-modal').classList.add('show');
+            renderGoodsList();
+            break;
+        case 'cardManage':
+            title.textContent = '次卡管理';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('settings');
+            addBtn.classList.remove('hidden');
+            addBtn.onclick = () => {
+                updateCardServiceSelect();
+                document.getElementById('add-card-modal').classList.add('show');
+            };
+            renderCardList();
+            break;
+        case 'level':
+            title.textContent = '储值卡等级';
+            backBtn.classList.remove('hidden');
+            backBtn.onclick = () => navigate('settings');
+            addBtn.classList.remove('hidden');
+            addBtn.onclick = () => document.getElementById('add-level-modal').classList.add('show');
+            renderLevelList();
+            break;
+    }
+}
+// ==================== 首页功能 ====================
+document.getElementById('home-date-btn').onclick = function() {
+    document.getElementById('home-date-menu').classList.toggle('hidden');
+};
+function setHomeDate(date) {
+    appData.homeDate = date;
+    document.getElementById('home-date-btn').innerHTML = `<i class="fa fa-calendar-o mr-1"></i>${date}<i class="fa fa-angle-down ml-1"></i>`;
+    document.getElementById('home-date-menu').classList.add('hidden');
+    updateHomeStats();
+    saveToLocalStorage();
+}
+
+// ✅ 完全修正统计逻辑：严格按照您的要求
+// 耗卡 = 从会员卡余额中实际扣除的金额
+// 补现 = 余额不足时额外支付的现金
+// 业绩 = 耗卡 + 补现 + 散客 + 次卡
+function updateHomeStats() {
+    let stats = {
+        total: 0, 
+        card: 0, 
+        recharge: 0, 
+        cash: 0, 
+        consume: 0, // 耗卡 = 储值消费中从余额扣除的金额
+        work: 0, 
+        walkinAmount: 0, 
+        walkinCount: 0, 
+        new: 0, 
+        member: 0,
+        supplementCash: 0 // 补现 = 储值/次卡消费中额外支付的现金
+    };
+    
+    const filteredOrders = filterOrdersByDateRange(appData.orders, appData.homeDate, appData.homeStart, appData.homeEnd);
+    
+    filteredOrders.forEach(order => {
+        // 次卡=购买次卡实付金额
+        if (order.type === 'card') {
+            stats.card += (order.actualAmount || order.amount);
+        }
+        // 充值=会员储值实付金额
+        if (order.type === 'recharge') {
+            stats.recharge += (order.actualAmount || order.amount);
+        }
+        // 散客消费=散客实付金额
+        if (order.type === 'walkin') {
+            stats.walkinAmount += (order.actualAmount || order.amount);
+            stats.walkinCount++;
+        }
+        // 储值消费
+        if (order.type === 'consume') {
+            // 耗卡 = 应收金额 - 补现金额（实际从余额扣的钱）
+            stats.consume += (order.amount - (order.actualAmount || 0));
+            // 补现 = 实际支付的现金
+            stats.supplementCash += (order.actualAmount || 0);
+        }
+        // 次卡消费的补现
+        if (order.type === 'cardConsume') {
+            stats.supplementCash += (order.actualAmount || 0);
+        }
+        // 会员人次统计
+        if (['recharge', 'card', 'consume', 'cardConsume'].includes(order.type)) {
+            stats.member++;
+        }
+    });
+    
+    // 收款金额(现金)=次卡+充值+散客消费+补现金额
+    stats.cash = stats.card + stats.recharge + stats.walkinAmount + stats.supplementCash;
+    // 总营收=收款金额
+    stats.total = stats.cash;
+    // 业绩=耗卡+补现+散客+次卡（符合美发行业标准）
+    stats.work = stats.consume + stats.supplementCash + stats.walkinAmount + stats.card;
+    
+    // 计算新增会员
+    const dateRange = getDateRange(appData.homeDate, appData.homeStart, appData.homeEnd);
+    stats.new = appData.members.filter(m => {
+        if (!m.registerTime) return false;
+        const regDate = new Date(m.registerTime);
+        return regDate >= dateRange.start && regDate <= dateRange.end;
+    }).length;
+    
+    // 更新显示
+    document.getElementById('total-revenue').textContent = '¥' + stats.total.toFixed(2);
+    document.getElementById('stat-card').textContent = stats.card.toFixed(2);
+    document.getElementById('stat-recharge').textContent = stats.recharge.toFixed(2);
+    document.getElementById('stat-cash').textContent = stats.cash.toFixed(2);
+    document.getElementById('stat-consume').textContent = stats.consume.toFixed(2);
+    document.getElementById('stat-work').textContent = stats.work.toFixed(2);
+    document.getElementById('stat-walkin').textContent = stats.walkinCount;
+    document.getElementById('stat-new').textContent = stats.new;
+    document.getElementById('stat-member').textContent = stats.member;
+}
+
+function getDateRange(type, startStr, endStr) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    let start, end;
+    
+    switch(type) {
+        case '今日':
+            start = today;
+            end = new Date(today);
+            end.setHours(23, 59, 59, 999);
+            break;
+        case '昨日':
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            start = yesterday;
+            end = new Date(yesterday);
+            end.setHours(23, 59, 59, 999);
+            break;
+        case '本周':
+            start = new Date(today);
+            start.setDate(today.getDate() - today.getDay() + 1);
+            end = new Date(today);
+            end.setHours(23, 59, 59, 999);
+            break;
+        case '本月':
+            start = new Date(now.getFullYear(), now.getMonth(), 1);
+            end = new Date(today);
+            end.setHours(23, 59, 59, 999);
+            break;
+        default:
+            start = new Date(startStr);
+            end = new Date(endStr);
+            end.setHours(23, 59, 59, 999);
+    }
+    
+    return { start, end };
+}
+function filterOrdersByDateRange(orders, type, startStr, endStr) {
+    const range = getDateRange(type, startStr, endStr);
+    return orders.filter(order => {
+        const orderDate = new Date(order.time);
+        return orderDate >= range.start && orderDate <= range.end;
+    });
+}
+// ==================== 订单功能 ====================
+function filterOrders(type) {
+    // 更新按钮样式
+    document.querySelectorAll('#page-orders .bg-white button').forEach(btn => {
+        btn.classList.remove('filter-active');
+        btn.classList.add('bg-gray-100');
+    });
+    event.target.classList.add('filter-active');
+    event.target.classList.remove('bg-gray-100');
+    
+    appData.currentOrderFilter = type;
+    filterOrdersByDate();
+}
+function filterOrdersByDate() {
+    const start = new Date(appData.ordersStart);
+    const end = new Date(appData.ordersEnd);
+    end.setHours(23, 59, 59, 999);
+    
+    let filtered = appData.orders.filter(order => {
+        const orderDate = new Date(order.time);
+        return orderDate >= start && orderDate <= end;
+    });
+    
+    if (appData.currentOrderFilter && appData.currentOrderFilter !== 'all') {
+        filtered = filtered.filter(order => order.type === appData.currentOrderFilter);
+    }
+    
+    renderOrdersList(filtered);
+}
+function renderOrdersList(orders) {
+    const container = document.getElementById('orders-list');
+    
+    if (orders.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-20"><i class="fa fa-list-alt text-5xl"></i><p class="mt-2">暂无订单</p></div>';
+        return;
+    }
+    
+    const sorted = [...orders].reverse();
+    container.innerHTML = sorted.map(order => `
+        <div class="card mb-3 p-4 cursor-pointer hover:shadow-medium transition" onclick="showOrderDetail(${order.id})">
+            <div class="flex justify-between items-center mb-2">
+                <span class="font-medium">${order.typeName}</span>
+                <span class="text-primary font-bold">¥${(order.actualAmount || order.amount).toFixed(2)}</span>
+            </div>
+            <p class="text-gray-500 text-sm">${order.time}</p>
+            <p class="text-gray-500 text-sm">${order.member || '散客'}</p>
+            ${order.items ? '<p class="text-gray-500 text-sm mt-1">项目：' + order.items.map(i => i.name + '×' + i.quantity).join('，') + '</p>' : ''}
+        </div>
+    `).join('');
+}
+function showOrderDetail(orderId) {
+    appData.currentOrder = appData.orders.find(o => o.id === orderId);
+    if (!appData.currentOrder) return;
+    
+    document.getElementById('detail-id').textContent = appData.currentOrder.id;
+    document.getElementById('detail-type').textContent = appData.currentOrder.typeName;
+    document.getElementById('detail-member').textContent = appData.currentOrder.member || '散客';
+    document.getElementById('detail-time').textContent = appData.currentOrder.time;
+    document.getElementById('detail-amount').textContent = '¥' + appData.currentOrder.amount.toFixed(2);
+    document.getElementById('detail-actual').textContent = '¥' + (appData.currentOrder.actualAmount || appData.currentOrder.amount).toFixed(2);
+    
+    // 消费项目
+    const itemsContainer = document.getElementById('detail-items');
+    if (appData.currentOrder.items && appData.currentOrder.items.length > 0) {
+        itemsContainer.innerHTML = appData.currentOrder.items.map(item => `
+            <div class="detail-item">
+                <span>${item.name}</span>
+                <span>×${item.quantity}</span>
+            </div>
+        `).join('');
+    } else {
+        itemsContainer.innerHTML = '<div class="text-center text-gray-400">无消费项目</div>';
+    }
+    
+    navigate('orderDetail');
+}
+function cancelCurrentOrder() {
+    if (!confirm('确定要撤销此订单吗？撤销后相关数据将从统计中移除，且无法恢复！')) {
+        return;
+    }
+    
+    const order = appData.currentOrder;
+    
+    // 回滚会员数据
+    if (order.member !== '散客') {
+        const member = appData.members.find(m => m.name === order.member);
+        if (member) {
+            switch (order.type) {
+                case 'recharge':
+                    member.balance -= (order.actualAmount || order.amount);
+                    // 回滚充值的累计消费
+                    member.totalConsume -= (order.actualAmount || order.amount);
+                    break;
+                case 'card':
+                    // 购买次卡不扣余额，所以不需要回滚余额
+                    if (member.cards.length > 0) member.cards.pop();
+                    // 回滚购买次卡的累计消费
+                    member.totalConsume -= (order.actualAmount || order.amount);
+                    break;
+                case 'consume':
+                    // 回滚：耗卡部分加回余额，补现部分从累计消费扣除
+                    const consumeAmount = order.amount - (order.actualAmount || 0);
+                    member.balance += consumeAmount;
+                    member.totalConsume -= (order.actualAmount || 0);
+                    member.times--;
+                    break;
+                case 'cardConsume':
+                    if (order.items) {
+                        order.items.forEach(item => {
+                            const card = member.cards.find(c => c.id === item.id);
+                            if (card) card.remaining += item.quantity;
+                        });
+                    }
+                    // 回滚次卡消费的补现金额
+                    if (order.actualAmount > 0) {
+                        member.totalConsume -= order.actualAmount;
+                    }
+                    member.times--;
+                    break;
+            }
+        }
+    }
+    
+    // 删除订单
+    appData.orders = appData.orders.filter(o => o.id !== order.id);
+    saveToLocalStorage();
+    
+    alert('订单已成功撤销');
+    navigate('orders');
+}
+// ==================== 数据中心功能 ====================
+function switchDataTab(tab) {
+    document.getElementById('tab-business').classList.toggle('top-tab-active', tab === 'business');
+    document.getElementById('tab-customer').classList.toggle('top-tab-active', tab === 'customer');
+    document.getElementById('data-business').classList.toggle('hidden', tab !== 'business');
+    document.getElementById('data-customer').classList.toggle('hidden', tab !== 'customer');
+}
+
+// ✅ 修正数据中心统计逻辑
+function updateDataStats() {
+    const start = new Date(appData.dataStart);
+    const end = new Date(appData.dataEnd);
+    end.setHours(23, 59, 59, 999);
+    
+    let income = 0, 
+        recharge = 0, 
+        card = 0, 
+        walkinAmount = 0, 
+        supplementCash = 0; // 补现金额
+    let visits = 0, walkinCount = 0;
+    
+    const filtered = appData.orders.filter(order => {
+        const orderDate = new Date(order.time);
+        return orderDate >= start && orderDate <= end;
+    });
+    
+    filtered.forEach(order => {
+        // 次卡=购买次卡实付金额
+        if (order.type === 'card') {
+            card += (order.actualAmount || order.amount);
+        }
+        // 充值=会员储值实付金额
+        if (order.type === 'recharge') {
+            recharge += (order.actualAmount || order.amount);
+        }
+        // 散客消费=散客实付金额
+        if (order.type === 'walkin') {
+            walkinAmount += (order.actualAmount || order.amount);
+            walkinCount++;
+        }
+        // 储值消费的补现
+        if (order.type === 'consume') {
+            supplementCash += (order.actualAmount || 0);
+        }
+        // 次卡消费的补现
+        if (order.type === 'cardConsume') {
+            supplementCash += (order.actualAmount || 0);
+        }
+        
+        visits++;
+    });
+    
+    // 收款金额=次卡+充值+散客消费+补现金额
+    income = card + recharge + walkinAmount + supplementCash;
+    
+    // 会员数据
+    const memberCount = appData.members.length;
+    const repeatMembers = appData.members.filter(m => m.times > 1).length;
+    const newMembers = appData.members.filter(m => {
+        if (!m.registerTime) return false;
+        const regDate = new Date(m.registerTime);
+        return regDate >= start && regDate <= end;
+    }).length;
+    
+    // 更新经营数据
+    document.getElementById('business-income').textContent = income.toFixed(2);
+    document.getElementById('business-recharge').textContent = recharge.toFixed(2);
+    document.getElementById('business-card').textContent = card.toFixed(2);
+    document.getElementById('business-walkin').textContent = walkinAmount.toFixed(2);
+    document.getElementById('business-cash').textContent = supplementCash.toFixed(2);
+    
+    // 更新客户分析
+    document.getElementById('customer-visits').textContent = visits;
+    document.getElementById('customer-members').textContent = memberCount;
+    document.getElementById('customer-repeat').textContent = repeatMembers;
+    document.getElementById('customer-walkin').textContent = walkinCount;
+    document.getElementById('customer-new').textContent = newMembers;
+    document.getElementById('customer-reserve').textContent = '0';
+}
+
+// ========================================
+// 永久稳定版Excel导入导出系统 v2.1
+// 适配iPad Safari + FileBrowserGO
+// 自动容错所有常见Excel格式问题
+// ========================================
+// 全局备份变量
+let backupData = null;
+let importFile = null; // 保存选中的文件
+// ==================== 导入系统 ====================
+function importFromExcel(event) {
+    const input = event.target;
+    if (!input.files[0]) return;
+    
+    // 导入前自动备份当前数据
+    backupData = JSON.parse(JSON.stringify(appData));
+    console.log('✅ 自动备份完成');
+    
+    importFile = input.files[0];
+    document.getElementById('import-mode-modal').classList.add('show');
+}
+function closeImportModal() {
+    closeModal('import-mode-modal');
+    document.getElementById('import-excel').value = '';
+    importFile = null;
+    backupData = null;
+}
+// 增量合并导入（推荐）
+function startIncrementalImport() {
+    if (!importFile) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const wb = XLSX.read(e.target.result, { type: 'binary' });
+            const stats = safeIncrementalImport(wb);
+            saveToLocalStorage();
+            
+            // ✅ 修复1：确保数据完全写入后再刷新
+            setTimeout(() => {
+                alert(`✅ 增量导入完成！\n\n` +
+                    `📊 会员：成功${stats.members.total}人（新增${stats.members.add}，更新${stats.members.update}）\n` +
+                    `📋 订单：成功${stats.orders.total}条（新增${stats.orders.add}，跳过${stats.orders.skip}重复）\n` +
+                    `✂️ 服务：成功${stats.services.total}个（新增${stats.services.add}，更新${stats.services.update}）\n` +
+                    `🛍️ 商品：成功${stats.goods.total}个（新增${stats.goods.add}，更新${stats.goods.update}）\n` +
+                    `💳 次卡：成功${stats.cards.total}个（新增${stats.cards.update}，更新${stats.cards.update}）\n\n` +
+                    `⚠️ 失败：${stats.totalFailed}条（空行/格式错误）\n` +
+                    `🔄 页面即将刷新`);
+                
+                // 强制刷新页面，确保所有统计数据更新
+                location.reload(true);
+            }, 1500);
+            
+        } catch (err) {
+            console.error('导入失败:', err);
+            // 导入失败自动回滚
+            appData = backupData;
+            saveToLocalStorage();
+            alert('❌ 导入失败，已自动回滚到导入前状态\n\n错误信息：' + err.message);
+            closeImportModal();
+        }
+    };
+    reader.readAsBinaryString(importFile);
+}
+// 覆盖全部导入
+function startFullImport() {
+    if (!importFile) return;
+    
+    if (!confirm('⚠️ 最终确认：此操作将永久删除所有现有数据，且无法恢复！\n\n系统已自动备份当前数据，确定要继续吗？')) {
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const wb = XLSX.read(e.target.result, { type: 'binary' });
+            const stats = safeFullImport(wb);
+            saveToLocalStorage();
+            
+            // ✅ 修复1：确保数据完全写入后再刷新
+            setTimeout(() => {
+                alert(`✅ 覆盖导入完成！\n\n` +
+                    `📊 会员：${stats.members}人\n` +
+                    `📋 订单：${stats.orders}条\n` +
+                    `✂️ 服务：${stats.services}个\n` +
+                    `🛍️ 商品：${stats.goods}个\n` +
+                    `💳 次卡：${stats.cards}个\n\n` +
+                    `🔄 页面即将刷新`);
+                
+                // 强制刷新页面，确保所有统计数据更新
+                location.reload(true);
+            }, 1500);
+            
+        } catch (err) {
+            console.error('导入失败:', err);
+            appData = backupData;
+            saveToLocalStorage();
+            alert('❌ 导入失败，已自动回滚到导入前状态\n\n错误信息：' + err.message);
+            closeImportModal();
+        }
+    };
+    reader.readAsBinaryString(importFile);
+}
+// 安全增量导入核心
+function safeIncrementalImport(wb) {
+    const stats = {
+        members: { add: 0, update: 0, total: 0 },
+        orders: { add: 0, skip: 0, total: 0 },
+        services: { add: 0, update: 0, total: 0 },
+        goods: { add: 0, update: 0, total: 0 },
+        cards: { add: 0, update: 0, total: 0 },
+        totalFailed: 0
+    };
+    // 1. 会员数据导入（手机号唯一标识）
+    const membersData = safeSheetToJson(wb.Sheets['会员数据'] || []);
+    membersData.forEach(row => {
+        if (!row['姓名'] || !row['手机号']) {
+            stats.totalFailed++;
+            return;
+        }
+        // 关键修复：强制手机号为字符串，自动去除空格和特殊字符
+        const phone = String(row['手机号']).trim().replace(/\D/g, '');
+        if (phone.length < 11) {
+            stats.totalFailed++;
+            return;
+        }
+        const existingIndex = appData.members.findIndex(x => x.phone === phone);
+        const parsedCards = safeParseCards(row['次卡信息']);
+        
+        // 自动创建缺失的会员等级
+        const levelName = safeString(row['会员等级'], '普通会员');
+        autoCreateLevel(levelName);
+        const level = appData.levels.find(l => l.name === levelName);
+        if (existingIndex === -1) {
+            appData.members.push({
+                id: safeInt(row['会员ID'], Date.now() + Math.random()),
+                name: safeString(row['姓名']),
+                phone: phone,
+                birthday: safeString(row['生日'], '--'),
+                levelName: levelName,
+                levelId: level.id,
+                discount: level.discount,
+                balance: safeFloat(row['余额']),
+                totalConsume: safeFloat(row['累计消费']),
+                times: safeInt(row['消费次数']),
+                registerTime: safeString(row['注册时间'], '--'),
+                lastVisit: safeString(row['最后到店'], '--'),
+                cards: parsedCards
+            });
+            stats.members.add++;
+        } else {
+            const existing = appData.members[existingIndex];
+            existing.name = safeString(row['姓名'], existing.name);
+            existing.birthday = safeString(row['生日'], existing.birthday);
+            existing.levelName = levelName;
+            existing.levelId = level.id;
+            existing.discount = level.discount;
+            existing.balance += safeFloat(row['余额']);
+            existing.totalConsume += safeFloat(row['累计消费']);
+            existing.times += safeInt(row['消费次数']);
+            existing.registerTime = existing.registerTime || safeString(row['注册时间'], '--');
+            existing.lastVisit = safeString(row['最后到店'], existing.lastVisit);
+            existing.cards = [...existing.cards, ...parsedCards];
+            stats.members.update++;
+        }
+        stats.members.total++;
+    });
+    // 2. 订单数据导入（订单ID唯一标识，无ID自动生成）
+    const ordersData = safeSheetToJson(wb.Sheets['订单数据'] || []);
+    ordersData.forEach(row => {
+        // ✅ 修复：不强制要求订单ID，无ID自动生成
+        const orderId = safeInt(row['订单ID'], Date.now() + Math.random());
+        if (appData.orders.find(x => x.id === orderId)) {
+            stats.orders.skip++;
+            return;
+        }
+        appData.orders.push({
+            id: orderId,
+            typeName: safeString(row['订单类型']),
+            member: safeString(row['客户'], '散客'),
+            amount: safeFloat(row['应收金额']),
+            actualAmount: safeFloat(row['实付金额'], safeFloat(row['应收金额'])),
+            items: safeParseOrderItems(row['消费项目']),
+            time: safeString(row['下单时间'], new Date().toLocaleString())
+        });
+        stats.orders.add++;
+        stats.orders.total++;
+    });
+    // 3. 服务数据导入
+    const servicesData = safeSheetToJson(wb.Sheets['服务数据'] || []);
+    servicesData.forEach(row => {
+        if (!row['服务名称']) {
+            stats.totalFailed++;
+            return;
+        }
+        const serviceId = safeInt(row['服务ID'], Date.now() + Math.random());
+        const existingIndex = appData.services.findIndex(x => x.id === serviceId);
+        if (existingIndex === -1) {
+            appData.services.push({
+                id: serviceId,
+                name: safeString(row['服务名称']),
+                category: safeString(row['分类'], '其他'),
+                price: safeFloat(row['原价']),
+                mprice: safeFloat(row['会员价'], safeFloat(row['原价']))
+            });
+            stats.services.add++;
+        } else {
+            Object.assign(appData.services[existingIndex], {
+                name: safeString(row['服务名称']),
+                category: safeString(row['分类'], '其他'),
+                price: safeFloat(row['原价']),
+                mprice: safeFloat(row['会员价'], safeFloat(row['原价']))
+            });
+            stats.services.update++;
+        }
+        stats.services.total++;
+    });
+    // 4. 商品数据导入
+    const goodsData = safeSheetToJson(wb.Sheets['商品数据'] || []);
+    goodsData.forEach(row => {
+        if (!row['商品名称']) {
+            stats.totalFailed++;
+            return;
+        }
+        const goodsId = safeInt(row['商品ID'], Date.now() + Math.random());
+        const existingIndex = appData.goods.findIndex(x => x.id === goodsId);
+        if (existingIndex === -1) {
+            appData.goods.push({
+                id: goodsId,
+                name: safeString(row['商品名称']),
+                price: safeFloat(row['原价']),
+                mprice: safeFloat(row['会员价'], safeFloat(row['原价']))
+            });
+            stats.goods.add++;
+        } else {
+            Object.assign(appData.goods[existingIndex], {
+                name: safeString(row['商品名称']),
+                price: safeFloat(row['原价']),
+                mprice: safeFloat(row['会员价'], safeFloat(row['原价']))
+            });
+            stats.goods.update++;
+        }
+        stats.goods.total++;
+    });
+    // 5. 次卡数据导入
+    const cardsData = safeSheetToJson(wb.Sheets['次卡数据'] || []);
+    cardsData.forEach(row => {
+        if (!row['次卡名称']) {
+            stats.totalFailed++;
+            return;
+        }
+        const cardId = safeInt(row['次卡ID'], Date.now() + Math.random());
+        const existingIndex = appData.cards.findIndex(x => x.id === cardId);
+        const serviceId = appData.services.find(s => s.name === safeString(row['绑定服务']))?.id || 0;
+        if (existingIndex === -1) {
+            appData.cards.push({
+                id: cardId,
+                name: safeString(row['次卡名称']),
+                price: safeFloat(row['售价']),
+                count: safeInt(row['包含次数']),
+                giveCount: safeInt(row['赠送次数']),
+                serviceId: serviceId
+            });
+            stats.cards.add++;
+        } else {
+            Object.assign(appData.cards[existingIndex], {
+                name: safeString(row['次卡名称']),
+                price: safeFloat(row['售价']),
+                count: safeInt(row['包含次数']),
+                giveCount: safeInt(row['赠送次数']),
+                serviceId: serviceId
+            });
+            stats.cards.update++;
+        }
+        stats.cards.total++;
+    });
+    return stats;
+}
+// 安全覆盖导入核心
+function safeFullImport(wb) {
+    const stats = {
+        members: 0,
+        orders: 0,
+        services: 0,
+        goods: 0,
+        cards: 0
+    };
+    // 清空所有数据
+    appData.members = [];
+    appData.orders = [];
+    appData.services = [];
+    appData.goods = [];
+    appData.cards = [];
+    appData.levels = [{ id: 0, name: '普通会员', discount: 10 }];
+    // 重新导入
+    const tempStats = safeIncrementalImport(wb);
+    stats.members = tempStats.members.total;
+    stats.orders = tempStats.orders.total;
+    stats.services = tempStats.services.total;
+    stats.goods = tempStats.goods.total;
+    stats.cards = tempStats.cards.total;
+    return stats;
+}
+// ==================== 导出系统 ====================
+function exportAllData() {
+    const wb = XLSX.utils.book_new();
+    
+    // 会员表（包含等级和次卡）
+    const membersSheet = XLSX.utils.json_to_sheet(appData.members.map(m => ({
+        '会员ID': m.id,
+        '姓名': m.name,
+        '手机号': m.phone,
+        '生日': m.birthday,
+        '会员等级': m.levelName,
+        '余额': m.balance.toFixed(2),
+        '累计消费': m.totalConsume.toFixed(2),
+        '消费次数': m.times,
+        '注册时间': m.registerTime,
+        '最后到店': m.lastVisit,
+        '次卡信息': m.cards ? m.cards.map(c => `${c.name}(${c.remaining}/${c.total})`).join('; ') : ''
+    })));
+    XLSX.utils.book_append_sheet(wb, membersSheet, '会员数据');
+    
+    // 订单表
+    const ordersSheet = XLSX.utils.json_to_sheet(appData.orders.map(o => ({
+        '订单ID': o.id,
+        '订单类型': o.typeName,
+        '客户': o.member,
+        '应收金额': o.amount.toFixed(2),
+        '实付金额': (o.actualAmount || o.amount).toFixed(2),
+        '消费项目': o.items ? o.items.map(i => i.name + '×' + i.quantity).join('，') : '',
+        '下单时间': o.time
+    })));
+    XLSX.utils.book_append_sheet(wb, ordersSheet, '订单数据');
+    
+    // 服务表
+    const servicesSheet = XLSX.utils.json_to_sheet(appData.services.map(s => ({
+        '服务ID': s.id,
+        '服务名称': s.name,
+        '分类': s.category,
+        '原价': s.price.toFixed(2),
+        '会员价': s.mprice.toFixed(2)
+    })));
+    XLSX.utils.book_append_sheet(wb, servicesSheet, '服务数据');
+    
+    // 商品表
+    const goodsSheet = XLSX.utils.json_to_sheet(appData.goods.map(g => ({
+        '商品ID': g.id,
+        '商品名称': g.name,
+        '原价': g.price.toFixed(2),
+        '会员价': g.mprice.toFixed(2)
+    })));
+    XLSX.utils.book_append_sheet(wb, goodsSheet, '商品数据');
+    
+    // 次卡表
+    const cardsSheet = XLSX.utils.json_to_sheet(appData.cards.map(c => ({
+        '次卡ID': c.id,
+        '次卡名称': c.name,
+        '售价': c.price.toFixed(2),
+        '包含次数': c.count,
+        '赠送次数': c.giveCount || 0,
+        '绑定服务': appData.services.find(s => s.id === c.serviceId)?.name || ''
+    })));
+    XLSX.utils.book_append_sheet(wb, cardsSheet, '次卡数据');
+    // 会员等级表（新增，确保导入时等级不丢失）
+    const levelsSheet = XLSX.utils.json_to_sheet(appData.levels.map(l => ({
+        '等级ID': l.id,
+        '等级名称': l.name,
+        '折扣': l.discount
+    })));
+    XLSX.utils.book_append_sheet(wb, levelsSheet, '会员等级');
+    
+    downloadExcel(wb, '乐思美发全部数据_' + new Date().toLocaleDateString().replace(/\//g, '-') + '.xlsx');
+}
+
+// ✅ 修正导出经营数据统计逻辑
+function exportBusinessData() {
+    const start = new Date(appData.dataStart);
+    const end = new Date(appData.dataEnd);
+    end.setHours(23, 59, 59, 999);
+    
+    let income = 0, 
+        recharge = 0, 
+        card = 0, 
+        walkinAmount = 0, 
+        supplementCash = 0,
+        consume = 0; // 耗卡金额
+    let visits = 0, walkinCount = 0;
+    
+    const filtered = appData.orders.filter(order => {
+        const orderDate = new Date(order.time);
+        return orderDate >= start && orderDate <= end;
+    });
+    
+    filtered.forEach(order => {
+        if (order.type === 'recharge') recharge += (order.actualAmount || order.amount);
+        if (order.type === 'card') card += (order.actualAmount || order.amount);
+        if (order.type === 'walkin') {
+            walkinAmount += (order.actualAmount || order.amount);
+            walkinCount++;
+        }
+        if (order.type === 'consume') {
+            supplementCash += (order.actualAmount || 0);
+            consume += (order.amount - (order.actualAmount || 0));
+        }
+        if (order.type === 'cardConsume') {
+            supplementCash += (order.actualAmount || 0);
+        }
+        
+        visits++;
+    });
+    
+    income = card + recharge + walkinAmount + supplementCash;
+    const memberCount = appData.members.length;
+    const repeatMembers = appData.members.filter(m => m.times > 1).length;
+    const newMembers = appData.members.filter(m => {
+        if (!m.registerTime) return false;
+        const regDate = new Date(m.registerTime);
+        return regDate >= start && regDate <= end;
+    });
+    
+    // 汇总表
+    const summary = [
+        ['统计日期', appData.dataStart + ' 至 ' + appData.dataEnd],
+        ['收款金额(元)', income.toFixed(2)],
+        ['充值金额(元)', recharge.toFixed(2)],
+        ['次卡金额(元)', card.toFixed(2)],
+        ['散客金额(元)', walkinAmount.toFixed(2)],
+        ['耗卡金额(元)', consume.toFixed(2)],
+        ['补现金额(元)', supplementCash.toFixed(2)],
+        ['总人次', visits],
+        ['会员数', memberCount],
+        ['多次到店会员数', repeatMembers],
+        ['散客数', walkinCount],
+        ['新增会员数', newMembers]
+    ];
+    
+    // 订单明细表
+    const ordersDetail = filtered.map(o => ({
+        '订单ID': o.id,
+        '订单类型': o.typeName,
+        '客户': o.member,
+        '应收金额': o.amount.toFixed(2),
+        '实付金额': (o.actualAmount || o.amount).toFixed(2),
+        '消费项目': o.items ? o.items.map(i => i.name + '×' + i.quantity).join('，') : '',
+        '下单时间': o.time
+    }));
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), '经营数据汇总');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ordersDetail), '订单明细');
+    
+    downloadExcel(wb, '乐思美发经营数据_' + appData.dataStart + '_' + appData.dataEnd + '.xlsx');
+}
+
+// ==================== 工具函数（核心容错） ====================
+// 安全转换Excel表格，自动跳过空行和标题行
+function safeSheetToJson(sheet) {
+    if (!sheet) return [];
+    const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    if (data.length === 0) return [];
+    // 自动识别表头行（找到包含"姓名"和"手机号"的行作为表头）
+    let headerRowIndex = 0;
+    for (let i = 0; i < Math.min(data.length, 10); i++) {
+        const row = data[i].map(cell => String(cell || '').trim());
+        if (row.includes('姓名') && row.includes('手机号')) {
+            headerRowIndex = i;
+            break;
+        }
+    }
+    const headers = data[headerRowIndex].map(cell => String(cell || '').trim());
+    const result = [];
+    for (let i = headerRowIndex + 1; i < data.length; i++) {
+        const row = {};
+        let isEmpty = true;
+        
+        headers.forEach((header, index) => {
+            if (header) {
+                row[header] = data[i][index];
+                if (data[i][index] !== undefined && data[i][index] !== '') {
+                    isEmpty = false;
+                }
+            }
+        });
+        
+        if (!isEmpty) {
+            result.push(row);
+        }
+    }
+    return result;
+}
+// 安全字符串转换
+function safeString(value, defaultValue = '') {
+    if (value === undefined || value === null) return defaultValue;
+    return String(value).trim();
+}
+// 安全浮点数转换
+function safeFloat(value, defaultValue = 0) {
+    const num = parseFloat(value);
+    return isNaN(num) ? defaultValue : num;
+}
+// 安全整数转换
+function safeInt(value, defaultValue = 0) {
+    const num = parseInt(value);
+    return isNaN(num) ? defaultValue : num;
+}
+// 安全解析次卡信息
+function safeParseCards(cardStr) {
+    if (!cardStr || cardStr === '--') return [];
+    return String(cardStr).split(';').map((cs, index) => {
+        const match = cs.trim().match(/(.+)\((\d+)\/(\d+)\)/);
+        return match ? {
+            id: Date.now() + index,
+            cardId: 0,
+            name: match[1].trim(),
+            serviceId: 0,
+            total: parseInt(match[3]),
+            remaining: parseInt(match[2])
+        } : null;
+    }).filter(c => c !== null);
+}
+// 安全解析订单项目
+function safeParseOrderItems(itemStr) {
+    if (!itemStr) return null;
+    return String(itemStr).split('，').map(item => {
+        const match = item.trim().match(/(.+)×(\d+)/);
+        return match ? {
+            name: match[1].trim(),
+            quantity: parseInt(match[2])
+        } : { name: item.trim(), quantity: 1 };
+    });
+}
+// 自动创建缺失的会员等级
+function autoCreateLevel(levelName) {
+    if (!appData.levels.find(l => l.name === levelName)) {
+        const discount = parseFloat(levelName);
+        appData.levels.push({
+            id: Date.now() + Math.random(),
+            name: levelName,
+            discount: discount || 10
+        });
+        saveToLocalStorage();
+        console.log('自动创建会员等级:', levelName);
+    }
+}
+// 统一Excel下载函数（完美适配iOS）
+function downloadExcel(wb, fileName) {
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    
+    if (navigator.share) {
+        // iOS优先使用系统分享
+        const file = new File([blob], fileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        navigator.share({
+            title: fileName,
+            files: [file]
+        }).then(() => {
+            alert('✅ 导出成功，请选择"保存到文件"');
+        }).catch(() => {
+            // 分享失败降级
+            fallbackDownload(blob, fileName);
+        });
+    } else {
+        fallbackDownload(blob, fileName);
+    }
+}
+function fallbackDownload(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('✅ 导出成功，文件已保存到"文件"App的"下载项"文件夹');
+}
+// 兼容原有函数名（确保其他代码正常运行）
+function parseCardsFromExcel(cardStr) {
+    return safeParseCards(cardStr);
+}
+function parseOrderItems(itemStr) {
+    return safeParseOrderItems(itemStr);
+}
+// ==================== 会员管理功能 ====================
+function renderMemberList() {
+    const container = document.getElementById('member-list');
+    
+    if (appData.members.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-20"><i class="fa fa-user-circle text-5xl"></i><p class="mt-2">暂无会员</p><p class="text-sm">点击右上角"+"添加</p></div>';
+        return;
+    }
+    
+    container.innerHTML = appData.members.map(m => `
+        <div class="card mb-4 p-4 cursor-pointer hover:shadow-medium transition" onclick="showMemberDetail(${m.id})">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full gradient-bg text-white flex items-center justify-center mr-3">${m.name.charAt(0)}</div>
+                <div class="flex-1">
+                    <h3 class="font-semibold">${m.name}</h3>
+                    <p class="text-gray-500 text-sm">${m.phone.replace(/(\d{3})\d{4}(\d{4})/,'$1****$2')}</p>
+                </div>
+                <i class="fa fa-angle-right text-gray-400"></i>
+            </div>
+            <div class="mt-2 text-sm">余额：<span class="text-primary">¥${m.balance.toFixed(2)}</span></div>
+        </div>
+    `).join('');
+}
+function searchMembers() {
+    const keyword = document.getElementById('member-search').value.toLowerCase();
+    const container = document.getElementById('member-list');
+    
+    const filtered = appData.members.filter(m => 
+        m.name.toLowerCase().includes(keyword) || m.phone.includes(keyword)
+    );
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-20"><p>未找到匹配的会员</p></div>';
+        return;
+    }
+    
+    container.innerHTML = filtered.map(m => `
+        <div class="card mb-4 p-4 cursor-pointer hover:shadow-medium transition" onclick="showMemberDetail(${m.id})">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full gradient-bg text-white flex items-center justify-center mr-3">${m.name.charAt(0)}</div>
+                <div class="flex-1">
+                    <h3 class="font-semibold">${m.name}</h3>
+                    <p class="text-gray-500 text-sm">${m.phone.replace(/(\d{3})\d{4}(\d{4})/,'$1****$2')}</p>
+                </div>
+                <i class="fa fa-angle-right text-gray-400"></i>
+            </div>
+            <div class="mt-2 text-sm">余额：<span class="text-primary">¥${m.balance.toFixed(2)}</span></div>
+        </div>
+    `).join('');
+}
+function initAddMemberPage() {
+    // 清空输入框
+    document.getElementById('member-name').value = '';
+    document.getElementById('member-phone').value = '';
+    document.getElementById('member-birthday').value = '';
+}
+function saveNewMember() {
+    const name = document.getElementById('member-name').value.trim();
+    const phone = document.getElementById('member-phone').value.trim();
+    const birthday = document.getElementById('member-birthday').value;
+    
+    if (!name || !phone) {
+        alert('请填写姓名和手机号');
+        return;
+    }
+    
+    // 默认普通会员
+    const level = appData.levels.find(l => l.id === 0);
+    const member = {
+        id: Date.now(),
+        name,
+        phone,
+        birthday: birthday || '--',
+        levelId: 0,
+        levelName: level.name,
+        discount: level.discount,
+        balance: 0,
+        totalConsume: 0,
+        times: 0,
+        registerTime: new Date().toLocaleString(),
+        lastVisit: '--',
+        cards: []
+    };
+    
+    appData.members.push(member);
+    appData.newMemberId = member.id;
+    saveToLocalStorage();
+    
+    // 显示开卡选择弹窗
+    document.getElementById('open-card-modal').classList.add('show');
+}
+// 开储蓄卡
+function openSavingsCard() {
+    closeModal('open-card-modal');
+    appData.currentMember = appData.members.find(m => m.id === appData.newMemberId);
+    showRechargeModal();
+}
+// 开次卡
+function openTimesCard() {
+    closeModal('open-card-modal');
+    appData.currentMember = appData.members.find(m => m.id === appData.newMemberId);
+    showBuyCardModal();
+}
+function showMemberDetail(memberId) {
+    appData.currentMember = appData.members.find(m => m.id === memberId);
+    if (!appData.currentMember) return;
+    
+    document.getElementById('member-name-detail').textContent = appData.currentMember.name;
+    document.getElementById('member-phone-detail').textContent = appData.currentMember.phone.replace(/(\d{3})\d{4}(\d{4})/,'$1****$2');
+    document.getElementById('member-level-detail').textContent = appData.currentMember.levelName;
+    document.getElementById('member-balance-detail').textContent = '¥' + appData.currentMember.balance.toFixed(2);
+    document.getElementById('member-total-detail').textContent = '¥' + appData.currentMember.totalConsume.toFixed(2);
+    
+    renderMemberOrders();
+    renderMemberCards();
+    navigate('memberDetail');
+}
+function renderMemberOrders() {
+    const container = document.getElementById('member-orders');
+    const orders = appData.orders.filter(o => o.member === appData.currentMember.name);
+    
+    if (orders.length === 0) {
+        container.innerHTML = '<div class="p-4 text-center text-gray-400"><p>暂无消费记录</p></div>';
+        return;
+    }
+    
+    const sorted = [...orders].reverse();
+    container.innerHTML = sorted.map(order => `
+        <div class="p-4">
+            <div class="flex justify-between items-center">
+                <span class="font-medium">${order.typeName}</span>
+                <span class="text-primary font-bold">¥${(order.actualAmount || order.amount).toFixed(2)}</span>
+            </div>
+            <p class="text-gray-500 text-sm">${order.time}</p>
+            ${order.items ? '<p class="text-gray-500 text-sm mt-1">项目：' + order.items.map(i => i.name + '×' + i.quantity).join('，') + '</p>' : ''}
+        </div>
+    `).join('');
+}
+function renderMemberCards() {
+    const container = document.getElementById('member-cards');
+    const cards = appData.currentMember.cards;
+    
+    if (cards.length === 0) {
+        container.innerHTML = '<div class="p-4 text-center text-gray-400"><p>暂无次卡</p></div>';
+        return;
+    }
+    
+    container.innerHTML = cards.map(card => `
+        <div class="p-4 flex justify-between items-center">
+            <div>
+                <h4 class="font-medium">${card.name}</h4>
+                <p class="text-gray-500 text-sm">剩余次数: ${card.remaining}/${card.total}</p>
+            </div>
+            <span class="${card.remaining > 0 ? 'text-success' : 'text-danger'} font-semibold">
+                ${card.remaining > 0 ? '可用' : '已用完'}
+            </span>
+        </div>
+    `).join('');
+}
+function deleteCurrentMember() {
+    if (confirm('确定要删除此会员吗？所有相关数据将被永久删除！')) {
+        appData.members = appData.members.filter(m => m.id !== appData.currentMember.id);
+        saveToLocalStorage();
+        alert('会员删除成功');
+        navigate('memberList');
+    }
+}
+// ==================== 充值功能 ====================
+function showRechargeModal() {
+    document.getElementById('recharge-amount').value = '';
+    document.getElementById('recharge-actual').value = '0.00';
+    document.getElementById('recharge-gift-count').value = '1';
+    
+    // 更新会员等级下拉框
+    const levelSelect = document.getElementById('recharge-level');
+    levelSelect.innerHTML = appData.levels.map(l => 
+        `<option value="${l.id}" ${l.id === appData.currentMember.levelId ? 'selected' : ''}>${l.name}(${l.discount}折)</option>`
+    ).join('');
+    
+    // 更新赠送服务下拉框
+    const giftSelect = document.getElementById('recharge-gift-service');
+    if (appData.services.length === 0) {
+        giftSelect.innerHTML = '<option value="">暂无可用服务</option>';
+    } else {
+        giftSelect.innerHTML = '<option value="">选择赠送服务</option>' + 
+            appData.services.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    }
+    
+    document.getElementById('recharge-modal').classList.add('show');
+}
+function setRechargeAmount(amount) {
+    document.getElementById('recharge-amount').value = amount;
+    document.getElementById('recharge-actual').value = amount;
+}
+function processRecharge() {
+    const amount = parseFloat(document.getElementById('recharge-amount').value);
+    const actualAmount = parseFloat(document.getElementById('recharge-actual').value) || amount;
+    const levelId = parseInt(document.getElementById('recharge-level').value);
+    
+    if (!amount || amount <= 0) {
+        alert('请输入正确的充值金额');
+        return;
+    }
+    
+    // 更新会员等级
+    const level = appData.levels.find(l => l.id === levelId);
+    if (level) {
+        appData.currentMember.levelId = levelId;
+        appData.currentMember.levelName = level.name;
+        appData.currentMember.discount = level.discount;
+    }
+    
+    appData.currentMember.balance += amount;
+    // 充值金额计入累计消费
+    appData.currentMember.totalConsume += actualAmount;
+    
+    // 处理赠送服务
+    const giftServiceId = parseInt(document.getElementById('recharge-gift-service').value);
+    const giftCount = parseInt(document.getElementById('recharge-gift-count').value) || 1;
+    let giftItems = [];
+    
+    if (giftServiceId && giftCount > 0) {
+        const service = appData.services.find(s => s.id === giftServiceId);
+        if (service) {
+            appData.currentMember.cards.push({
+                id: Date.now(),
+                cardId: 0,
+                name: '充值赠送-' + service.name,
+                serviceId: service.id,
+                total: giftCount,
+                remaining: giftCount
+            });
+            giftItems.push({
+                id: service.id,
+                name: service.name,
+                quantity: giftCount
+            });
+        }
+    }
+    
+    const orderTime = appData.currentSettleDate || new Date().toLocaleString();
+    
+    appData.orders.push({
+        id: Date.now(),
+        type: 'recharge',
+        typeName: '储值充值',
+        amount,
+        actualAmount,
+        items: giftItems.length > 0 ? giftItems : null,
+        member: appData.currentMember.name,
+        time: orderTime
+    });
+    
+    saveToLocalStorage();
+    closeModal('recharge-modal');
+    appData.currentSettleDate = null;
+    
+    document.getElementById('member-balance-detail').textContent = '¥' + appData.currentMember.balance.toFixed(2);
+    document.getElementById('member-total-detail').textContent = '¥' + appData.currentMember.totalConsume.toFixed(2);
+    document.getElementById('member-level-detail').textContent = appData.currentMember.levelName;
+    renderMemberCards();
+    alert('充值成功' + (giftItems.length > 0 ? '，已赠送服务' : ''));
+}
+// ==================== 购买次卡功能 ====================
+function showBuyCardModal() {
+    const container = document.getElementById('buy-card-list');
+    document.getElementById('buy-card-actual').value = '0.00';
+    
+    if (appData.cards.length === 0) {
+        container.innerHTML = '<p class="text-center text-gray-400">暂无可用次卡，请先在系统设置中添加</p>';
+    } else {
+        container.innerHTML = appData.cards.map(card => `
+            <div class="bg-gray-50 rounded-lg p-3 flex justify-between items-center" onclick="buyThisCard(${card.id}, ${card.price})">
+                <div>
+                    <h4 class="font-medium">${card.name}</h4>
+                    <p class="text-sm text-gray-500">${card.count}次${card.giveCount > 0 ? ' + 赠送' + card.giveCount + '次' : ''} - ¥${card.price.toFixed(2)}</p>
+                </div>
+                <button class="gradient-btn text-white px-3 py-1 rounded text-sm">购买</button>
+            </div>
+        `).join('');
+    }
+    
+    document.getElementById('buy-card-modal').classList.add('show');
+}
+function buyThisCard(cardId, price) {
+    const card = appData.cards.find(c => c.id === cardId);
+    if (!card) return;
+    
+    const actualAmount = parseFloat(document.getElementById('buy-card-actual').value) || price;
+    
+    // 不扣除会员余额，改为现金支付
+    const totalCount = card.count + (card.giveCount || 0);
+    appData.currentMember.cards.push({
+        id: Date.now(),
+        cardId: card.id,
+        name: card.name,
+        serviceId: card.serviceId,
+        total: totalCount,
+        remaining: totalCount
+    });
+    
+    // 购买次卡金额计入累计消费
+    appData.currentMember.totalConsume += actualAmount;
+    
+    const orderTime = appData.currentSettleDate || new Date().toLocaleString();
+    
+    appData.orders.push({
+        id: Date.now(),
+        type: 'card',
+        typeName: '购买次卡',
+        amount: price,
+        actualAmount,
+        member: appData.currentMember.name,
+        time: orderTime
+    });
+    
+    saveToLocalStorage();
+    closeModal('buy-card-modal');
+    appData.currentSettleDate = null;
+    
+    document.getElementById('member-total-detail').textContent = '¥' + appData.currentMember.totalConsume.toFixed(2);
+    renderMemberCards();
+    alert('购买成功');
+}
+// ========================================
+// ✅ 核心修复：彻底移除按ID合并逻辑
+// 每点击一次"+"添加一条独立记录
+// ========================================
+// ==================== 储值消费功能 ====================
+let consumeItems = [];
+let consumeTotal = 0;
+let currentConsumeTab = 'service';
+let currentConsumeCategory = 'all';
+function startBalanceConsume() {
+    consumeItems = [];
+    consumeTotal = 0;
+    currentConsumeTab = 'service';
+    currentConsumeCategory = 'all';
+    navigate('consume');
+}
+function initConsumePage() {
+    updateConsumeCategories();
+    renderConsumeItems();
+    updateConsumeTotals();
+}
+function updateConsumeCategories() {
+    const container = document.getElementById('consume-categories');
+    container.innerHTML = '<div class="py-3 pl-3 cate-active" onclick="switchConsumeCategory(this, \'all\')">全部</div>' +
+        appData.categories.map(cate => 
+            `<div class="py-3 pl-3" onclick="switchConsumeCategory(this, '${cate}')">${cate}</div>`
+        ).join('');
+}
+function switchConsumeCategory(el, cate) {
+    el.parentElement.querySelectorAll('div').forEach(d => d.classList.remove('cate-active'));
+    el.classList.add('cate-active');
+    currentConsumeCategory = cate;
+    renderConsumeItems();
+}
+function switchConsumeTab(el, tab) {
+    el.parentElement.querySelectorAll('button').forEach(btn => {
+        btn.classList.remove('tab-active');
+        btn.classList.add('text-gray-500');
+    });
+    el.classList.add('tab-active');
+    el.classList.remove('text-gray-500');
+    
+    currentConsumeTab = tab;
+    // 清空搜索框
+    document.getElementById('consume-search').value = '';
+    renderConsumeItems();
+}
+function renderConsumeItems() {
+    const container = document.getElementById('consume-items');
+    
+    if (currentConsumeTab === 'service') {
+        let filtered = appData.services;
+        if (currentConsumeCategory !== 'all') {
+            filtered = appData.services.filter(s => s.category === currentConsumeCategory);
+        }
+        
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-400 py-10"><p>该分类下暂无服务项目</p></div>';
+            return;
+        }
+        
+        container.innerHTML = filtered.map(s => {
+            const mprice = (s.price * appData.currentMember.discount / 10).toFixed(2);
+            // ✅ 修复：统计该服务在数组中出现的总次数
+            const qty = consumeItems.filter(i => i.id === s.id && i.type === 'service').length;
+            
+            return `
+            <div class="card p-3 flex justify-between items-center" data-id="${s.id}" data-name="${s.name}" data-original="${s.price}" data-price="${mprice}" data-type="service" data-cate="${s.category}">
+                <div>
+                    <div class="flex items-center">
+                        <p class="font-medium">${s.name}</p>
+                        <span class="service-tag">${s.category}</span>
+                    </div>
+                    <p class="text-sm text-gray-500">原价：¥${s.price.toFixed(2)}</p>
+                    <p class="text-sm text-primary">现价：¥${mprice}</p>
+                </div>
+                <div class="flex items-center">
+                    <button onclick="subConsumeItem(this)" class="w-7 h-7 rounded-full border flex items-center justify-center">-</button>
+                    <span class="w-6 text-center">${qty}</span>
+                    <button onclick="addConsumeItem(this)" class="w-7 h-7 rounded-full gradient-bg text-white flex items-center justify-center">+</button>
+                </div>
+            </div>
+        `}).join('');
+    } else {
+        if (appData.goods.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-400 py-10"><p>暂无商品，请先在系统设置中添加</p></div>';
+            return;
+        }
+        
+        container.innerHTML = appData.goods.map(g => {
+            const mprice = (g.price * appData.currentMember.discount / 10).toFixed(2);
+            // ✅ 修复：统计该商品在数组中出现的总次数
+            const qty = consumeItems.filter(i => i.id === g.id && i.type === 'goods').length;
+            
+            return `
+            <div class="card p-3 flex justify-between items-center" data-id="${g.id}" data-name="${g.name}" data-original="${g.price}" data-price="${mprice}" data-type="goods">
+                <div>
+                    <p class="font-medium">${g.name}</p>
+                    <p class="text-sm text-gray-500">原价：¥${g.price.toFixed(2)}</p>
+                    <p class="text-sm text-primary">现价：¥${mprice}</p>
+                </div>
+                <div class="flex items-center">
+                    <button onclick="subConsumeItem(this)" class="w-7 h-7 rounded-full border flex items-center justify-center">-</button>
+                    <span class="w-6 text-center">${qty}</span>
+                    <button onclick="addConsumeItem(this)" class="w-7 h-7 rounded-full gradient-bg text-white flex items-center justify-center">+</button>
+                </div>
+            </div>
+        `}).join('');
+    }
+}
+function searchConsumeItems() {
+    const keyword = document.getElementById('consume-search').value.toLowerCase();
+    const container = document.getElementById('consume-items');
+    
+    let filtered = [];
+    if (currentConsumeTab === 'service') {
+        filtered = appData.services.filter(s => 
+            s.name.toLowerCase().includes(keyword) || s.category.toLowerCase().includes(keyword)
+        ).map(s => ({
+            ...s,
+            type: 'service',
+            original: s.price,
+            price: (s.price * appData.currentMember.discount / 10).toFixed(2)
+        }));
+    } else {
+        filtered = appData.goods.filter(g => 
+            g.name.toLowerCase().includes(keyword)
+        ).map(g => ({
+            ...g,
+            type: 'goods',
+            original: g.price,
+            price: (g.price * appData.currentMember.discount / 10).toFixed(2)
+        }));
+    }
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-10"><p>未找到匹配的项目</p></div>';
+        return;
+    }
+    
+    container.innerHTML = filtered.map(item => {
+        // ✅ 修复：统计该项目在数组中出现的总次数
+        const qty = consumeItems.filter(i => i.id === item.id && i.type === item.type).length;
+        
+        return `
+        <div class="card p-3 flex justify-between items-center" data-id="${item.id}" data-name="${item.name}" data-original="${item.original.toFixed(2)}" data-price="${item.price}" data-type="${item.type}">
+            <div>
+                <p class="font-medium">${item.name}</p>
+                <p class="text-sm text-gray-500">原价：¥${item.original.toFixed(2)}</p>
+                <p class="text-sm text-primary">现价：¥${item.price}</p>
+            </div>
+            <div class="flex items-center">
+                <button onclick="subConsumeItem(this)" class="w-7 h-7 rounded-full border flex items-center justify-center">-</button>
+                <span class="w-6 text-center">${qty}</span>
+                <button onclick="addConsumeItem(this)" class="w-7 h-7 rounded-full gradient-bg text-white flex items-center justify-center">+</button>
+            </div>
+        </div>
+    `}).join('');
+}
+// ✅ 核心修复：每次点击"+"都push一条新记录
+function addConsumeItem(btn) {
+    const item = btn.closest('[data-id]');
+    const id = parseInt(item.dataset.id);
+    const name = item.dataset.name;
+    const original = parseFloat(item.dataset.original);
+    const price = parseFloat(item.dataset.price);
+    const type = item.dataset.type;
+    
+    // ✅ 直接push新对象，不合并
+    consumeItems.push({ 
+        id, 
+        name, 
+        original, 
+        price, 
+        quantity: 1, // 每条记录数量都是1
+        type 
+    });
+    
+    const span = btn.previousElementSibling;
+    span.textContent = parseInt(span.textContent) + 1;
+    
+    consumeTotal += price;
+    updateConsumeTotals();
+}
+// ✅ 核心修复：从后往前删除最后一条匹配的记录
+function subConsumeItem(btn) {
+    const item = btn.closest('[data-id]');
+    const id = parseInt(item.dataset.id);
+    const price = parseFloat(item.dataset.price);
+    const type = item.dataset.type;
+    
+    // ✅ 从后往前找第一个匹配的项并删除
+    for (let i = consumeItems.length - 1; i >= 0; i--) {
+        if (consumeItems[i].id === id && consumeItems[i].type === type) {
+            consumeItems.splice(i, 1);
+            break;
+        }
+    }
+    
+    const span = btn.nextElementSibling;
+    span.textContent = parseInt(span.textContent) - 1;
+    
+    consumeTotal -= price;
+    updateConsumeTotals();
+}
+function updateConsumeTotals() {
+    document.getElementById('consume-total').textContent = '¥' + Math.max(0, consumeTotal).toFixed(2);
+    document.getElementById('consume-deduct').textContent = '¥' + Math.max(0, consumeTotal).toFixed(2);
+}
+function goToConsumeConfirm() {
+    if (consumeTotal === 0) {
+        alert('请选择消费项目');
+        return;
+    }
+    
+    renderConsumeConfirmList();
+    document.getElementById('confirm-total').textContent = '¥' + consumeTotal.toFixed(2);
+    document.getElementById('confirm-actual').value = '0.00'; // 默认实付0，全部从余额扣
+    document.getElementById('confirm-balance').textContent = '¥' + appData.currentMember.balance.toFixed(2);
+    
+    navigate('consumeConfirm');
+}
+// ✅ 修复：逐条渲染所有记录，每条都是独立的卡片
+function renderConsumeConfirmList() {
+    const container = document.getElementById('consume-confirm-list');
+    let html = '';
+    
+    consumeItems.forEach((item, index) => {
+        html += `
+        <div class="order-item">
+            <div class="order-item-header">
+                <span class="order-item-title">${item.name}</span>
+                <span class="order-item-delete" onclick="deleteConsumeConfirmItem(${index})">删除</span>
+            </div>
+            <div class="order-item-row">
+                <span class="order-item-label">数量</span>
+                <span class="order-item-value">1次</span>
+            </div>
+            <div class="order-item-row">
+                <span class="order-item-label">单价</span>
+                <span class="order-item-edit" onclick="openEditPriceModal('consume', ${index})">¥${item.price.toFixed(2)} <i class="fa fa-angle-right ml-1"></i></span>
+            </div>
+            <div class="order-item-row">
+                <span class="order-item-label">小计</span>
+                <span class="order-item-value">应收 ¥${item.price.toFixed(2)}</span>
+            </div>
+        </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+// ✅ 修复：删除指定索引的单条记录
+function deleteConsumeConfirmItem(index) {
+    const item = consumeItems[index];
+    consumeTotal -= item.price;
+    consumeItems.splice(index, 1);
+    
+    renderConsumeConfirmList();
+    document.getElementById('confirm-total').textContent = '¥' + Math.max(0, consumeTotal).toFixed(2);
+    document.getElementById('confirm-actual').value = '0.00';
+}
+function confirmBalanceConsume() {
+    if (consumeItems.length === 0) {
+        alert('请选择消费项目');
+        return;
+    }
+    
+    const actualAmount = parseFloat(document.getElementById('confirm-actual').value) || 0;
+    // 耗卡金额 = 应收 - 补现
+    const deductAmount = consumeTotal - actualAmount;
+    
+    if (deductAmount > appData.currentMember.balance) {
+        alert('余额不足');
+        return;
+    }
+    
+    // 从余额扣除耗卡部分
+    appData.currentMember.balance -= deductAmount;
+    // 补现部分计入累计消费
+    appData.currentMember.totalConsume += actualAmount;
+    appData.currentMember.times++;
+    appData.currentMember.lastVisit = new Date().toLocaleDateString();
+    
+    const orderTime = appData.currentSettleDate || new Date().toLocaleString();
+    
+    // 转换为订单格式
+    const orderItems = consumeItems.map(i => ({ 
+        id: i.id, 
+        name: i.name, 
+        quantity: 1, // 每条都是数量1
+        price: i.price 
+    }));
+    
+    appData.orders.push({
+        id: Date.now(),
+        type: 'consume',
+        typeName: '储值消费',
+        amount: consumeTotal,
+        actualAmount,
+        items: orderItems,
+        member: appData.currentMember.name,
+        time: orderTime
+    });
+    
+    saveToLocalStorage();
+    consumeItems = [];
+    consumeTotal = 0;
+    appData.currentSettleDate = null;
+    
+    alert('消费成功');
+    showMemberDetail(appData.currentMember.id);
+}
+// ==================== 次卡消费功能 ====================
+let cardConsumeItems = [];
+let cardConsumeTotal = 0;
+function startCardConsume() {
+    cardConsumeItems = [];
+    cardConsumeTotal = 0;
+    navigate('cardConsume');
+}
+function initCardConsumePage() {
+    const container = document.getElementById('card-consume-items');
+    const available = appData.currentMember.cards.filter(c => c.remaining > 0);
+    
+    if (available.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-20"><p>该会员暂无可用次卡</p></div>';
+        return;
+    }
+    
+    container.innerHTML = available.map(card => {
+        // ✅ 修复：统计该次卡在数组中出现的总次数
+        const qty = cardConsumeItems.filter(i => i.id === card.id).length;
+        
+        return `
+        <div class="card p-3 flex justify-between items-center" data-id="${card.id}" data-name="${card.name}">
+            <div>
+                <p class="font-medium">${card.name}</p>
+                <p class="text-sm text-gray-500">剩余：${card.remaining}次</p>
+            </div>
+            <div class="flex items-center">
+                <button onclick="subCardConsumeItem(this)" class="w-7 h-7 rounded-full border flex items-center justify-center">-</button>
+                <span class="w-6 text-center">${qty}</span>
+                <button onclick="addCardConsumeItem(this)" class="w-7 h-7 rounded-full gradient-bg text-white flex items-center justify-center">+</button>
+            </div>
+        </div>
+    `}).join('');
+    
+    updateCardConsumeTotals();
+}
+// ✅ 核心修复：每次点击"+"都push一条新记录
+function addCardConsumeItem(btn) {
+    const item = btn.closest('[data-id]');
+    const id = parseInt(item.dataset.id);
+    const name = item.dataset.name;
+    
+    // ✅ 直接push新对象，不合并
+    cardConsumeItems.push({ id, name, quantity: 1 });
+    
+    const span = btn.previousElementSibling;
+    span.textContent = parseInt(span.textContent) + 1;
+    
+    cardConsumeTotal++;
+    updateCardConsumeTotals();
+}
+// ✅ 核心修复：从后往前删除最后一条匹配的记录
+function subCardConsumeItem(btn) {
+    const item = btn.closest('[data-id]');
+    const id = parseInt(item.dataset.id);
+    
+    // ✅ 从后往前找第一个匹配的项并删除
+    for (let i = cardConsumeItems.length - 1; i >= 0; i--) {
+        if (cardConsumeItems[i].id === id) {
+            cardConsumeItems.splice(i, 1);
+            break;
+        }
+    }
+    
+    const span = btn.nextElementSibling;
+    span.textContent = parseInt(span.textContent) - 1;
+    
+    cardConsumeTotal--;
+    updateCardConsumeTotals();
+}
+function updateCardConsumeTotals() {
+    document.getElementById('card-consume-total').textContent = cardConsumeTotal + '次';
+}
+function goToCardConsumeConfirm() {
+    if (cardConsumeTotal === 0) {
+        alert('请选择消费项目');
+        return;
+    }
+    
+    renderCardConsumeConfirmList();
+    document.getElementById('card-confirm-total').textContent = cardConsumeTotal + '次';
+    document.getElementById('card-confirm-actual').value = '0.00';
+    
+    navigate('cardConsumeConfirm');
+}
+// ✅ 修复：逐条渲染所有记录，每条都是独立的卡片
+function renderCardConsumeConfirmList() {
+    const container = document.getElementById('card-confirm-list');
+    let html = '';
+    
+    cardConsumeItems.forEach((item, index) => {
+        html += `
+        <div class="order-item">
+            <div class="order-item-header">
+                <span class="order-item-title">${item.name}</span>
+                <span class="order-item-delete" onclick="deleteCardConsumeConfirmItem(${index})">删除</span>
+            </div>
+            <div class="order-item-row">
+                <span class="order-item-label">数量</span>
+                <span class="order-item-value">1次</span>
+            </div>
+        </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+// ✅ 修复：删除指定索引的单条记录
+function deleteCardConsumeConfirmItem(index) {
+    cardConsumeItems.splice(index, 1);
+    cardConsumeTotal--;
+    
+    renderCardConsumeConfirmList();
+    document.getElementById('card-confirm-total').textContent = cardConsumeTotal + '次';
+}
+function confirmCardConsume() {
+    if (cardConsumeItems.length === 0) {
+        alert('请选择消费项目');
+        return;
+    }
+    
+    const actualAmount = parseFloat(document.getElementById('card-confirm-actual').value) || 0;
+    
+    const items = [];
+    cardConsumeItems.forEach(item => {
+        const card = appData.currentMember.cards.find(c => c.id === item.id);
+        if (card) {
+            card.remaining -= 1; // 每条扣1次
+            items.push({ id: card.id, name: card.name, quantity: 1 });
+        }
+    });
+    
+    // 次卡消费时的补现金额计入累计消费
+    if (actualAmount > 0) {
+        appData.currentMember.totalConsume += actualAmount;
+    }
+    
+    appData.currentMember.times++;
+    appData.currentMember.lastVisit = new Date().toLocaleDateString();
+    
+    const orderTime = appData.currentSettleDate || new Date().toLocaleString();
+    
+    appData.orders.push({
+        id: Date.now(),
+        type: 'cardConsume',
+        typeName: '次卡消费',
+        amount: 0,
+        actualAmount,
+        items,
+        member: appData.currentMember.name,
+        time: orderTime
+    });
+    
+    saveToLocalStorage();
+    cardConsumeItems = [];
+    cardConsumeTotal = 0;
+    appData.currentSettleDate = null;
+    
+    alert('消费成功');
+    showMemberDetail(appData.currentMember.id);
+}
+// ==================== 散客消费功能 ====================
+let walkinItems = [];
+let walkinTotal = 0;
+let currentWalkinTab = 'service';
+let currentWalkinCategory = 'all';
+function initWalkinPage() {
+    walkinItems = [];
+    walkinTotal = 0;
+    currentWalkinTab = 'service';
+    currentWalkinCategory = 'all';
+    updateWalkinCategories();
+    renderWalkinItems();
+    updateWalkinTotals();
+}
+function updateWalkinCategories() {
+    const container = document.getElementById('walkin-categories');
+    container.innerHTML = '<div class="py-3 pl-3 cate-active" onclick="switchWalkinCategory(this, \'all\')">全部</div>' +
+        appData.categories.map(cate => 
+            `<div class="py-3 pl-3" onclick="switchWalkinCategory(this, '${cate}')">${cate}</div>`
+        ).join('');
+}
+function switchWalkinCategory(el, cate) {
+    el.parentElement.querySelectorAll('div').forEach(d => d.classList.remove('cate-active'));
+    el.classList.add('cate-active');
+    currentWalkinCategory = cate;
+    renderWalkinItems();
+}
+function switchWalkinTab(el, tab) {
+    el.parentElement.querySelectorAll('button').forEach(btn => {
+        btn.classList.remove('tab-active');
+        btn.classList.add('text-gray-500');
+    });
+    el.classList.add('tab-active');
+    el.classList.remove('text-gray-500');
+    
+    currentWalkinTab = tab;
+    // 清空搜索框
+    document.getElementById('walkin-search').value = '';
+    renderWalkinItems();
+}
+function renderWalkinItems() {
+    const container = document.getElementById('walkin-items');
+    
+    if (currentWalkinTab === 'service') {
+        let filtered = appData.services;
+        if (currentWalkinCategory !== 'all') {
+            filtered = appData.services.filter(s => s.category === currentWalkinCategory);
+        }
+        
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-400 py-10"><p>该分类下暂无服务项目</p></div>';
+            return;
+        }
+        
+        container.innerHTML = filtered.map(s => {
+            // ✅ 修复：统计该服务在数组中出现的总次数
+            const qty = walkinItems.filter(i => i.id === s.id && i.type === 'service').length;
+            
+            return `
+            <div class="card p-3 flex justify-between items-center" data-id="${s.id}" data-name="${s.name}" data-price="${s.price}" data-type="service" data-cate="${s.category}">
+                <div>
+                    <div class="flex items-center">
+                        <p class="font-medium">${s.name}</p>
+                        <span class="service-tag">${s.category}</span>
+                    </div>
+                    <p class="text-sm text-gray-500">原价：¥${s.price.toFixed(2)}</p>
+                </div>
+                <div class="flex items-center">
+                    <button onclick="subWalkinItem(this)" class="w-7 h-7 rounded-full border flex items-center justify-center">-</button>
+                    <span class="w-6 text-center">${qty}</span>
+                    <button onclick="addWalkinItem(this)" class="w-7 h-7 rounded-full gradient-bg text-white flex items-center justify-center">+</button>
+                </div>
+            </div>
+        `}).join('');
+    } else {
+        if (appData.goods.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-400 py-10"><p>暂无商品，请先在系统设置中添加</p></div>';
+            return;
+        }
+        
+        container.innerHTML = appData.goods.map(g => {
+            // ✅ 修复：统计该商品在数组中出现的总次数
+            const qty = walkinItems.filter(i => i.id === g.id && i.type === 'goods').length;
+            
+            return `
+            <div class="card p-3 flex justify-between items-center" data-id="${g.id}" data-name="${g.name}" data-price="${g.price}" data-type="goods">
+                <div>
+                    <p class="font-medium">${g.name}</p>
+                    <p class="text-sm text-gray-500">原价：¥${g.price.toFixed(2)}</p>
+                </div>
+                <div class="flex items-center">
+                    <button onclick="subWalkinItem(this)" class="w-7 h-7 rounded-full border flex items-center justify-center">-</button>
+                    <span class="w-6 text-center">${qty}</span>
+                    <button onclick="addWalkinItem(this)" class="w-7 h-7 rounded-full gradient-bg text-white flex items-center justify-center">+</button>
+                </div>
+            </div>
+        `}).join('');
+    }
+}
+function searchWalkinItems() {
+    const keyword = document.getElementById('walkin-search').value.toLowerCase();
+    const container = document.getElementById('walkin-items');
+    
+    let filtered = [];
+    if (currentWalkinTab === 'service') {
+        filtered = appData.services.filter(s => 
+            s.name.toLowerCase().includes(keyword) || s.category.toLowerCase().includes(keyword)
+        ).map(s => ({ ...s, type: 'service' }));
+    } else {
+        filtered = appData.goods.filter(g => 
+            g.name.toLowerCase().includes(keyword)
+        ).map(g => ({ ...g, type: 'goods' }));
+    }
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-10"><p>未找到匹配的项目</p></div>';
+        return;
+    }
+    
+    container.innerHTML = filtered.map(item => {
+        // ✅ 修复：统计该项目在数组中出现的总次数
+        const qty = walkinItems.filter(i => i.id === item.id && i.type === item.type).length;
+        
+        return `
+        <div class="card p-3 flex justify-between items-center" data-id="${item.id}" data-name="${item.name}" data-price="${item.price}" data-type="${item.type}">
+            <div>
+                <p class="font-medium">${item.name}</p>
+                <p class="text-sm text-gray-500">原价：¥${item.price.toFixed(2)}</p>
+            </div>
+            <div class="flex items-center">
+                <button onclick="subWalkinItem(this)" class="w-7 h-7 rounded-full border flex items-center justify-center">-</button>
+                <span class="w-6 text-center">${qty}</span>
+                <button onclick="addWalkinItem(this)" class="w-7 h-7 rounded-full gradient-bg text-white flex items-center justify-center">+</button>
+            </div>
+        </div>
+    `}).join('');
+}
+// ✅ 核心修复：每次点击"+"都push一条新记录
+function addWalkinItem(btn) {
+    const item = btn.closest('[data-id]');
+    const id = parseInt(item.dataset.id);
+    const name = item.dataset.name;
+    const price = parseFloat(item.dataset.price);
+    const type = item.dataset.type;
+    
+    // ✅ 直接push新对象，不合并
+    walkinItems.push({ 
+        id, 
+        name, 
+        price, 
+        quantity: 1, // 每条记录数量都是1
+        type 
+    });
+    
+    const span = btn.previousElementSibling;
+    span.textContent = parseInt(span.textContent) + 1;
+    
+    walkinTotal += price;
+    updateWalkinTotals();
+}
+// ✅ 核心修复：从后往前删除最后一条匹配的记录
+function subWalkinItem(btn) {
+    const item = btn.closest('[data-id]');
+    const id = parseInt(item.dataset.id);
+    const price = parseFloat(item.dataset.price);
+    const type = item.dataset.type;
+    
+    // ✅ 从后往前找第一个匹配的项并删除
+    for (let i = walkinItems.length - 1; i >= 0; i--) {
+        if (walkinItems[i].id === id && walkinItems[i].type === type) {
+            walkinItems.splice(i, 1);
+            break;
+        }
+    }
+    
+    const span = btn.nextElementSibling;
+    span.textContent = parseInt(span.textContent) - 1;
+    
+    walkinTotal -= price;
+    updateWalkinTotals();
+}
+function updateWalkinTotals() {
+    document.getElementById('walkin-total').textContent = '¥' + Math.max(0, walkinTotal).toFixed(2);
+}
+function goToWalkinConfirm() {
+    if (walkinTotal === 0) {
+        alert('请选择消费项目');
+        return;
+    }
+    
+    renderWalkinConfirmList();
+    document.getElementById('walkin-confirm-total').textContent = '¥' + walkinTotal.toFixed(2);
+    document.getElementById('walkin-confirm-actual').value = walkinTotal.toFixed(2);
+    
+    navigate('walkinConfirm');
+}
+// ✅ 修复：逐条渲染所有记录，每条都是独立的卡片
+function renderWalkinConfirmList() {
+    const container = document.getElementById('walkin-confirm-list');
+    let html = '';
+    
+    walkinItems.forEach((item, index) => {
+        html += `
+        <div class="order-item">
+            <div class="order-item-header">
+                <span class="order-item-title">${item.name}</span>
+                <span class="order-item-delete" onclick="deleteWalkinConfirmItem(${index})">删除</span>
+            </div>
+            <div class="order-item-row">
+                <span class="order-item-label">数量</span>
+                <span class="order-item-value">1次</span>
+            </div>
+            <div class="order-item-row">
+                <span class="order-item-label">单价</span>
+                <span class="order-item-edit" onclick="openEditPriceModal('walkin', ${index})">¥${item.price.toFixed(2)} <i class="fa fa-angle-right ml-1"></i></span>
+            </div>
+            <div class="order-item-row">
+                <span class="order-item-label">小计</span>
+                <span class="order-item-value">应收 ¥${item.price.toFixed(2)}</span>
+            </div>
+        </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+// ✅ 修复：删除指定索引的单条记录
+function deleteWalkinConfirmItem(index) {
+    const item = walkinItems[index];
+    walkinTotal -= item.price;
+    walkinItems.splice(index, 1);
+    
+    renderWalkinConfirmList();
+    document.getElementById('walkin-confirm-total').textContent = '¥' + Math.max(0, walkinTotal).toFixed(2);
+    document.getElementById('walkin-confirm-actual').value = Math.max(0, walkinTotal).toFixed(2);
+}
+function confirmWalkinConsume() {
+    if (walkinItems.length === 0) {
+        alert('请选择消费项目');
+        return;
+    }
+    
+    const actualAmount = parseFloat(document.getElementById('walkin-confirm-actual').value) || walkinTotal;
+    const orderTime = appData.currentSettleDate || new Date().toLocaleString();
+    
+    // 转换为订单格式
+    const orderItems = walkinItems.map(i => ({ 
+        id: i.id, 
+        name: i.name, 
+        quantity: 1, // 每条都是数量1
+        price: i.price 
+    }));
+    
+    appData.orders.push({
+        id: Date.now(),
+        type: 'walkin',
+        typeName: '散客消费',
+        amount: walkinTotal,
+        actualAmount,
+        items: orderItems,
+        member: '散客',
+        time: orderTime
+    });
+    
+    saveToLocalStorage();
+    walkinItems = [];
+    walkinTotal = 0;
+    appData.currentSettleDate = null;
+    
+    alert('消费成功');
+    navigate('home');
+}
+// ==================== 系统设置功能 ====================
+// 服务与分类管理
+document.getElementById('menu-btn').onclick = function() {
+    document.getElementById('service-menu').classList.toggle('show');
+};
+// 点击页面其他地方关闭菜单
+document.onclick = function(e) {
+    if (!e.target.closest('#home-date-btn') && !e.target.closest('#home-date-menu')) {
+        document.getElementById('home-date-menu').classList.add('hidden');
+    }
+    if (!e.target.closest('#menu-btn') && !e.target.closest('#service-menu')) {
+        document.getElementById('service-menu').classList.remove('show');
+    }
+};
+function openAddCategory() {
+    document.getElementById('service-menu').classList.remove('show');
+    document.getElementById('category-name').value = '';
+    document.getElementById('add-category-modal').classList.add('show');
+}
+function addNewCategory() {
+    const name = document.getElementById('category-name').value.trim();
+    if (!name) {
+        alert('请输入分类名称');
+        return;
+    }
+    
+    appData.categories.push(name);
+    saveToLocalStorage();
+    closeModal('add-category-modal');
+    renderServiceManagePage();
+}
+function editCategory(index) {
+    document.getElementById('edit-category-index').value = index;
+    document.getElementById('edit-category-name').value = appData.categories[index];
+    document.getElementById('edit-category-modal').classList.add('show');
+}
+function saveEditedCategory() {
+    const index = parseInt(document.getElementById('edit-category-index').value);
+    const newName = document.getElementById('edit-category-name').value.trim();
+    
+    if (!newName) {
+        alert('请输入分类名称');
+        return;
+    }
+    
+    // 更新该分类下所有服务
+    const oldName = appData.categories[index];
+    appData.services.forEach(s => {
+        if (s.category === oldName) {
+            s.category = newName;
+        }
+    });
+    
+    appData.categories[index] = newName;
+    saveToLocalStorage();
+    closeModal('edit-category-modal');
+    renderServiceManagePage();
+}
+function deleteCategory(index) {
+    if (confirm('确定删除此分类？该分类下的服务将无法正常显示')) {
+        appData.categories.splice(index, 1);
+        saveToLocalStorage();
+        renderServiceManagePage();
+    }
+}
+function openAddService() {
+    document.getElementById('service-menu').classList.remove('show');
+    updateServiceCategorySelect();
+    document.getElementById('service-name').value = '';
+    document.getElementById('service-price').value = '';
+    document.getElementById('service-mprice').value = '';
+    document.getElementById('add-service-modal').classList.add('show');
+}
+function updateServiceCategorySelect() {
+    const select = document.getElementById('service-category');
+    if (appData.categories.length === 0) {
+        select.innerHTML = '<option value="">请先添加分类</option>';
+    } else {
+        select.innerHTML = appData.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+}
+function addNewService() {
+    const name = document.getElementById('service-name').value.trim();
+    const category = document.getElementById('service-category').value;
+    const price = parseFloat(document.getElementById('service-price').value) || 0;
+    const mprice = parseFloat(document.getElementById('service-mprice').value) || price;
+    
+    if (!name || !category) {
+        alert('请输入服务名称并选择分类');
+        return;
+    }
+    
+    appData.services.push({
+        id: Date.now(),
+        name,
+        category,
+        price,
+        mprice
+    });
+    
+    saveToLocalStorage();
+    closeModal('add-service-modal');
+    renderServiceManagePage();
+}
+function editService(id) {
+    const service = appData.services.find(s => s.id === id);
+    if (!service) return;
+    
+    document.getElementById('edit-service-id').value = id;
+    document.getElementById('edit-service-name').value = service.name;
+    
+    // 更新分类下拉框
+    const select = document.getElementById('edit-service-category');
+    if (appData.categories.length === 0) {
+        select.innerHTML = '<option value="">请先添加分类</option>';
+    } else {
+        select.innerHTML = appData.categories.map(c => 
+            `<option value="${c}" ${c === service.category ? 'selected' : ''}>${c}</option>`
+        ).join('');
+    }
+    
+    document.getElementById('edit-service-price').value = service.price;
+    document.getElementById('edit-service-mprice').value = service.mprice;
+    document.getElementById('edit-service-modal').classList.add('show');
+}
+function saveEditedService() {
+    const id = parseInt(document.getElementById('edit-service-id').value);
+    const name = document.getElementById('edit-service-name').value.trim();
+    const category = document.getElementById('edit-service-category').value;
+    const price = parseFloat(document.getElementById('edit-service-price').value) || 0;
+    const mprice = parseFloat(document.getElementById('edit-service-mprice').value) || price;
+    
+    if (!name || !category) {
+        alert('请输入服务名称并选择分类');
+        return;
+    }
+    
+    const service = appData.services.find(s => s.id === id);
+    if (service) {
+        service.name = name;
+        service.category = category;
+        service.price = price;
+        service.mprice = mprice;
+    }
+    
+    saveToLocalStorage();
+    closeModal('edit-service-modal');
+    renderServiceManagePage();
+}
+function deleteService(id) {
+    if (confirm('确定删除此服务？')) {
+        appData.services = appData.services.filter(s => s.id !== id);
+        saveToLocalStorage();
+        renderServiceManagePage();
+    }
+}
+function renderServiceManagePage() {
+    // 渲染分类列表
+    const cateContainer = document.getElementById('service-categories');
+    cateContainer.innerHTML = '<div class="py-3 pl-3 cate-active" onclick="switchServiceCategory(this, \'all\')">全部服务</div>' +
+        appData.categories.map((cate, index) => `
+            <div class="py-3 pl-3 flex justify-between items-center pr-2" onclick="switchServiceCategory(this, '${cate}')">
+                <span>${cate}</span>
+                <div class="flex items-center">
+                    <button onclick="event.stopPropagation(); editCategory(${index})" class="text-blue-500 text-xs mr-2"><i class="fa fa-pencil"></i></button>
+                    <button onclick="event.stopPropagation(); deleteCategory(${index})" class="text-red-500 text-xs"><i class="fa fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    
+    // 渲染服务列表
+    renderServiceItems('all');
+}
+function switchServiceCategory(el, cate) {
+    el.parentElement.querySelectorAll('div').forEach(d => d.classList.remove('cate-active'));
+    el.classList.add('cate-active');
+    renderServiceItems(cate);
+}
+function renderServiceItems(cate) {
+    const container = document.getElementById('service-items');
+    let filtered = appData.services;
+    if (cate !== 'all') {
+        filtered = appData.services.filter(s => s.category === cate);
+    }
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-10"><p>该分类下暂无服务</p><p class="text-sm">点击右上角三点菜单添加</p></div>';
+        return;
+    }
+    
+    container.innerHTML = filtered.map(s => `
+        <div class="card p-3 flex justify-between items-center">
+            <div>
+                <h3 class="font-medium">${s.name}</h3>
+                <p class="text-sm text-gray-500">原价：¥${s.price.toFixed(2)} | 会员价：¥${s.mprice.toFixed(2)}</p>
+            </div>
+            <div class="flex items-center">
+                <button onclick="editService(${s.id})" class="text-blue-500 mr-3"><i class="fa fa-pencil"></i></button>
+                <button onclick="deleteService(${s.id})" class="text-red-500"><i class="fa fa-trash"></i></button>
+            </div>
+        </div>
+    `).join('');
+}
+// 商品管理
+function addNewGoods() {
+    const name = document.getElementById('goods-name').value.trim();
+    const price = parseFloat(document.getElementById('goods-price').value) || 0;
+    const mprice = parseFloat(document.getElementById('goods-mprice').value) || price;
+    
+    if (!name) {
+        alert('请输入商品名称');
+        return;
+    }
+    
+    appData.goods.push({
+        id: Date.now(),
+        name,
+        price,
+        mprice
+    });
+    
+    saveToLocalStorage();
+    closeModal('add-goods-modal');
+    
+    document.getElementById('goods-name').value = '';
+    document.getElementById('goods-price').value = '';
+    document.getElementById('goods-mprice').value = '';
+    
+    renderGoodsList();
+}
+function renderGoodsList() {
+    const container = document.getElementById('goods-list');
+    
+    if (appData.goods.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-20"><i class="fa fa-shopping-bag text-5xl"></i><p class="mt-2">暂无商品</p><p class="text-sm">点击右上角"+"添加</p></div>';
+        return;
+    }
+    
+    container.innerHTML = appData.goods.map(g => `
+        <div class="card mb-3 p-3 flex justify-between items-center">
+            <div>
+                <h3 class="font-medium">${g.name}</h3>
+                <p class="text-sm text-gray-500">原价：¥${g.price.toFixed(2)} | 会员价：¥${g.mprice.toFixed(2)}</p>
+            </div>
+            <button onclick="deleteGoods(${g.id})" class="text-red-500"><i class="fa fa-trash"></i></button>
+        </div>
+    `).join('');
+}
+function deleteGoods(id) {
+    if (confirm('确定删除此商品？')) {
+        appData.goods = appData.goods.filter(g => g.id !== id);
+        saveToLocalStorage();
+        renderGoodsList();
+    }
+}
+// 次卡管理
+function updateCardServiceSelect() {
+    const select = document.getElementById('card-service');
+    if (appData.services.length === 0) {
+        select.innerHTML = '<option value="">请先添加服务</option>';
+    } else {
+        select.innerHTML = appData.services.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    }
+}
+function addNewCard() {
+    const name = document.getElementById('card-name').value.trim();
+    const price = parseFloat(document.getElementById('card-price').value) || 0;
+    const count = parseInt(document.getElementById('card-count').value) || 0;
+    const giveCount = parseInt(document.getElementById('card-give').value) || 0;
+    const serviceId = parseInt(document.getElementById('card-service').value);
+    
+    if (!name || count <= 0) {
+        alert('请输入次卡名称和次数');
+        return;
+    }
+    
+    appData.cards.push({
+        id: Date.now(),
+        name,
+        price,
+        count,
+        giveCount,
+        serviceId
+    });
+    
+    saveToLocalStorage();
+    closeModal('add-card-modal');
+    
+    document.getElementById('card-name').value = '';
+    document.getElementById('card-price').value = '';
+    document.getElementById('card-count').value = '';
+    document.getElementById('card-give').value = '0';
+    
+    renderCardList();
+}
+function renderCardList() {
+    const container = document.getElementById('card-list');
+    
+    if (appData.cards.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-20"><i class="fa fa-credit-card text-5xl"></i><p class="mt-2">暂无次卡类型</p><p class="text-sm">点击右上角"+"添加</p></div>';
+        return;
+    }
+    
+    container.innerHTML = appData.cards.map(c => `
+        <div class="card mb-3 p-3 flex justify-between items-center">
+            <div>
+                <h3 class="font-medium">${c.name}</h3>
+                <p class="text-sm text-gray-500">售价：¥${c.price.toFixed(2)} | ${c.count}次${c.giveCount > 0 ? ' + 赠送' + c.giveCount + '次' : ''}</p>
+            </div>
+            <button onclick="deleteCard(${c.id})" class="text-red-500"><i class="fa fa-trash"></i></button>
+        </div>
+    `).join('');
+}
+function deleteCard(id) {
+    if (confirm('确定删除此次卡类型？')) {
+        appData.cards = appData.cards.filter(c => c.id !== id);
+        saveToLocalStorage();
+        renderCardList();
+    }
+}
+// 会员等级管理
+function addNewLevel() {
+    const name = document.getElementById('level-name').value.trim();
+    const discount = parseFloat(document.getElementById('level-discount').value) || 10;
+    
+    if (!name) {
+        alert('请输入等级名称');
+        return;
+    }
+    
+    appData.levels.push({
+        id: Date.now(),
+        name,
+        discount
+    });
+    
+    saveToLocalStorage();
+    closeModal('add-level-modal');
+    
+    document.getElementById('level-name').value = '';
+    document.getElementById('level-discount').value = '';
+    
+    renderLevelList();
+}
+function renderLevelList() {
+    const container = document.getElementById('level-list');
+    container.innerHTML = `
+        <div class="card p-4 flex justify-between items-center">
+            <div>
+                <h3 class="font-semibold">普通会员</h3>
+                <p class="text-gray-500 text-sm">折扣: 10折(无折扣)</p>
+            </div>
+            <span class="text-gray-400 text-sm">系统默认</span>
+        </div>
+    ` + appData.levels.filter(l => l.id !== 0).map(l => `
+        <div class="card p-4 flex justify-between items-center">
+            <div>
+                <h3 class="font-semibold">${l.name}</h3>
+                <p class="text-gray-500 text-sm">折扣: ${l.discount}折</p>
+            </div>
+            <button onclick="deleteLevel(${l.id})" class="text-red-500"><i class="fa fa-trash"></i></button>
+        </div>
+    `).join('');
+}
+function deleteLevel(id) {
+    if (confirm('确定删除此会员等级？')) {
+        appData.levels = appData.levels.filter(l => l.id !== id);
+        saveToLocalStorage();
+        renderLevelList();
+    }
+}
+// ==================== 通用功能 ====================
+// 结算日期修改
+function showSettleDateModal() {
+    // ✅ 修复：使用本地时间而不是UTC时间
+    const now = new Date();
+    const localDatetime = now.getFullYear() + '-' +
+        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0') + 'T' +
+        String(now.getHours()).padStart(2, '0') + ':' +
+        String(now.getMinutes()).padStart(2, '0');
+    
+    document.getElementById('settle-datetime').value = localDatetime;
+    document.getElementById('settle-date-modal').classList.add('show');
+}
+// ✅ 修复：移除弹窗提示，秒生效
+function confirmSettleDate() {
+    const datetime = document.getElementById('settle-datetime').value;
+    if (!datetime) {
+        return;
+    }
+    
+    const date = new Date(datetime);
+    appData.currentSettleDate = date.toLocaleString();
+    
+    closeModal('settle-date-modal');
+}
+// 修改单价
+function openEditPriceModal(type, index) {
+    document.getElementById('edit-price-type').value = type;
+    document.getElementById('edit-price-index').value = index;
+    document.getElementById('new-price').value = '';
+    document.getElementById('edit-price-modal').classList.add('show');
+}
+function saveNewPrice() {
+    const type = document.getElementById('edit-price-type').value;
+    const index = parseInt(document.getElementById('edit-price-index').value);
+    const newPrice = parseFloat(document.getElementById('new-price').value);
+    
+    if (!newPrice || newPrice < 0) {
+        alert('请输入有效的单价');
+        return;
+    }
+    
+    if (type === 'consume') {
+        const item = consumeItems[index];
+        consumeTotal -= item.price;
+        item.price = newPrice;
+        consumeTotal += newPrice;
+        
+        renderConsumeConfirmList();
+        document.getElementById('confirm-total').textContent = '¥' + consumeTotal.toFixed(2);
+        document.getElementById('confirm-actual').value = '0.00';
+        
+    } else if (type === 'walkin') {
+        const item = walkinItems[index];
+        walkinTotal -= item.price;
+        item.price = newPrice;
+        walkinTotal += newPrice;
+        
+        renderWalkinConfirmList();
+        document.getElementById('walkin-confirm-total').textContent = '¥' + walkinTotal.toFixed(2);
+        document.getElementById('walkin-confirm-actual').value = walkinTotal.toFixed(2);
+    }
+    
+    closeModal('edit-price-modal');
+}
+// ==================== 日历功能 ====================
+let calendarYear = new Date().getFullYear();
+let calendarMonth = new Date().getMonth();
+let calendarStart = null;
+let calendarEnd = null;
+let calendarTarget = '';
+function openHomeCalendar() {
+    document.getElementById('home-date-menu').classList.add('hidden');
+    calendarTarget = 'home';
+    initCalendar(new Date(appData.homeStart), new Date(appData.homeEnd));
+    document.getElementById('calendar-modal').classList.add('show');
+}
+function openOrdersCalendar() {
+    calendarTarget = 'orders';
+    initCalendar(new Date(appData.ordersStart), new Date(appData.ordersEnd));
+    document.getElementById('calendar-modal').classList.add('show');
+}
+function openDataCalendar() {
+    calendarTarget = 'data';
+    initCalendar(new Date(appData.dataStart), new Date(appData.dataEnd));
+    document.getElementById('calendar-modal').classList.add('show');
+}
+function initCalendar(start, end) {
+    calendarYear = end.getFullYear();
+    calendarMonth = end.getMonth();
+    calendarStart = start;
+    calendarEnd = end;
+    
+    updateCalendarTitle();
+    renderCalendar();
+}
+function updateCalendarTitle() {
+    document.getElementById('calendar-year').textContent = calendarYear + ' 年';
+    document.getElementById('calendar-month').textContent = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'][calendarMonth];
+    document.getElementById('calendar-title').textContent = 
+        formatDate(calendarStart) + ' 至 ' + formatDate(calendarEnd);
+}
+function prevYear() {
+    calendarYear--;
+    renderCalendar();
+}
+function nextYear() {
+    calendarYear++;
+    renderCalendar();
+}
+function prevMonth() {
+    calendarMonth--;
+    if (calendarMonth < 0) {
+        calendarMonth = 11;
+        calendarYear--;
+    }
+    renderCalendar();
+}
+function nextMonth() {
+    calendarMonth++;
+    if (calendarMonth > 11) {
+        calendarMonth = 0;
+        calendarYear++;
+    }
+    renderCalendar();
+}
+function renderCalendar() {
+    const container = document.getElementById('calendar-days');
+    container.innerHTML = '';
+    
+    const firstDay = new Date(calendarYear, calendarMonth, 1);
+    const lastDay = new Date(calendarYear + 1, calendarMonth + 1, 0);
+    const startWeekDay = (firstDay.getDay() + 6) % 7; // 周一为0
+    
+    // 填充空白
+    for (let i = 0; i < startWeekDay; i++) {
+        const div = document.createElement('div');
+        div.className = 'calendar-day disabled';
+        container.appendChild(div);
+    }
+    
+    // 填充日期
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+        const date = new Date(calendarYear, calendarMonth, i);
+        const div = document.createElement('div');
+        div.className = 'calendar-day';
+        div.textContent = i;
+        div.dataset.date = formatDate(date);
+        
+        // 标记选中范围
+        if (date.getTime() === calendarStart.getTime() || date.getTime() === calendarEnd.getTime()) {
+            div.classList.add('selected');
+        } else if (date > calendarStart && date < calendarEnd) {
+            div.classList.add('range');
+        }
+        
+        // 点击事件
+        div.onclick = function() {
+            const clicked = new Date(this.dataset.date);
+            
+            if (!calendarStart || !calendarEnd || calendarStart.getTime() !== calendarEnd.getTime()) {
+                calendarStart = clicked;
+                calendarEnd = clicked;
+            } else {
+                if (clicked < calendarStart) {
+                    calendarEnd = calendarStart;
+                    calendarStart = clicked;
+                } else {
+                    calendarEnd = clicked;
+                }
+            }
+            
+            updateCalendarTitle();
+            renderCalendar();
+        };
+        
+        container.appendChild(div);
+    }
+}
+function setQuickDate(type) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch(type) {
+        case 'today':
+            calendarStart = today;
+            calendarEnd = today;
+            break;
+        case 'week':
+            calendarStart = new Date(today);
+            calendarStart.setDate(today.getDate() - today.getDay() + 1);
+            calendarEnd = today;
+            break;
+        case 'lastweek':
+            calendarStart = new Date(today);
+            calendarStart.setDate(today.getDate() - today.getDay() - 6);
+            calendarEnd = new Date(calendarStart);
+            calendarEnd.setDate(calendarStart.getDate() + 6);
+            break;
+        case 'month':
+            calendarStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            calendarEnd = today;
+            break;
+        case 'lastmonth':
+            calendarStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            calendarEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+            break;
+        case 'year':
+            calendarStart = new Date(now.getFullYear(), 0, 1);
+            calendarEnd = today;
+            break;
+    }
+    
+    calendarYear = calendarEnd.getFullYear();
+    calendarMonth = calendarEnd.getMonth();
+    updateCalendarTitle();
+    renderCalendar();
+}
+function confirmCalendar() {
+    const startStr = formatDate(calendarStart);
+    const endStr = formatDate(calendarEnd);
+    
+    if (calendarTarget === 'home') {
+        appData.homeDate = 'custom-range';
+        appData.homeStart = startStr;
+        appData.homeEnd = endStr;
+        document.getElementById('home-date-btn').innerHTML = `<i class="fa fa-calendar-o mr-1"></i>自定义<i class="fa fa-angle-down ml-1"></i>`;
+        updateHomeStats();
+        
+    } else if (calendarTarget === 'orders') {
+        appData.ordersStart = startStr;
+        appData.ordersEnd = endStr;
+        document.getElementById('orders-date-text').textContent = '自定义';
+        document.getElementById('orders-date-range').textContent = 
+            startStr === endStr ? startStr : startStr + ' 至 ' + endStr;
+        filterOrdersByDate();
+        
+    } else if (calendarTarget === 'data') {
+        appData.dataStart = startStr;
+        appData.dataEnd = endStr;
+        document.getElementById('data-date-text').textContent = '自定义';
+        document.getElementById('data-date-range').textContent = 
+            startStr === endStr ? startStr : startStr + ' 至 ' + endStr;
+        updateDataStats();
+    }
+    
+    closeModal('calendar-modal');
+    saveToLocalStorage();
+}
+// ==================== 初始化 ====================
+window.onload = function() {
+    loadFromLocalStorage();
+    updateHomeStats();
+    
+    // ✅ 修复6：初始化日期显示为当前日期
+    const today = formatDate(new Date());
+    document.getElementById('orders-date-range').textContent = today;
+    document.getElementById('data-date-range').textContent = today;
+    
+    // 修复：将文件选择事件监听器移到这里，在页面加载完成后注册
+    document.getElementById('import-excel').addEventListener('change', importFromExcel);
+};
+</script>
+</body>
 </html>
